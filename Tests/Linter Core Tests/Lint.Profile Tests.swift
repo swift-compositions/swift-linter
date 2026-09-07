@@ -1,5 +1,4 @@
 import File_System
-import Linter
 import Testing
 
 @testable import Linter
