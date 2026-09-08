@@ -1,4 +1,4 @@
-internal import Linter
+internal import Lint
 internal import SwiftSyntax
 
 extension Lint.Source.Parsed {

@@ -32,30 +32,37 @@ let package = Package(
             name: "swift-linter",
             targets: ["Linter CLI"]
         ),
+        .executable(
+            name: "swift-linter-runner",
+            targets: ["Linter Runner"]
+        ),
     ],
     dependencies: [
+        .package(url: "https://github.com/swift-compositions/swift-institute-linter-rules.git", branch: "main"),
+        .package(url: "https://github.com/swift-molecules/swift-primitives-linter-rules.git", branch: "main"),
+        .package(url: "https://github.com/swift-standards/swift-standards-linter-rules.git", branch: "main"),
         .package(
-            url: "https://github.com/swift-molecules/swift-ascii.git",
+            url: "https://github.com/swift-atoms/swift-ascii.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-cardinal.git",
+            url: "https://github.com/swift-atoms/swift-cardinal.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-glob.git",
+            url: "https://github.com/swift-atoms/swift-glob.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-linter.git",
+            url: "https://github.com/swift-molecules/swift-lint.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-manifest.git",
+            url: "https://github.com/swift-atoms/swift-manifest.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-package.git",
+            url: "https://github.com/swift-atoms/swift-package.git",
             branch: "main"
         ),
         .package(
@@ -63,11 +70,11 @@ let package = Package(
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-terminal.git",
+            url: "https://github.com/swift-atoms/swift-terminal.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-version.git",
+            url: "https://github.com/swift-atoms/swift-version.git",
             branch: "main"
         ),
         .package(url: "https://github.com/swift-iso/swift-iso-9945.git", branch: "main"),
@@ -97,7 +104,7 @@ let package = Package(
             dependencies: [
                 .target(name: "Linter Core"),
                 .product(name: "Cardinal", package: "swift-cardinal"),
-                .product(name: "Linter", package: "swift-linter"),
+                .product(name: "Lint", package: "swift-lint"),
                 .product(name: "Terminal", package: "swift-terminal"),
                 .product(
                     name: "ISO 9945 Kernel Terminal",
@@ -116,7 +123,7 @@ let package = Package(
             dependencies: [
                 .target(name: "Linter Core"),
                 .target(name: "Linter Reporter Text"),
-                .product(name: "Linter", package: "swift-linter"),
+                .product(name: "Lint", package: "swift-lint"),
                 .product(name: "Terminal", package: "swift-terminal"),
                 .product(name: "JSON", package: "swift-json"),
                 .product(
@@ -145,10 +152,10 @@ let package = Package(
                 .product(name: "ASCII", package: "swift-ascii"),
                 .product(name: "Glob", package: "swift-glob"),
                 .product(
-                    name: "Glob Standard Library Integration",
+                    name: "Glob",
                     package: "swift-glob"
                 ),
-                .product(name: "Linter", package: "swift-linter"),
+                .product(name: "Lint", package: "swift-lint"),
                 .product(name: "Manifest", package: "swift-manifest"),
                 .product(name: "Package", package: "swift-package"),
                 .product(name: "Environment", package: "swift-environment"),
@@ -162,7 +169,7 @@ let package = Package(
                 .product(name: "URI Standard", package: "swift-uri-standard"),
                 .product(name: "Version", package: "swift-version"),
                 .product(
-                    name: "Version Standard Library Integration",
+                    name: "Version",
                     package: "swift-version"
                 ),
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
@@ -189,9 +196,18 @@ let package = Package(
                 .product(name: "Terminal", package: "swift-terminal"),
                 .product(name: "URI Standard Library Integration", package: "swift-uri-standard"),
                 .product(
-                    name: "Version Standard Library Integration",
+                    name: "Version",
                     package: "swift-version"
                 ),
+            ]
+        ),
+        .executableTarget(
+            name: "Linter Runner",
+            dependencies: [
+                .target(name: "Linter"),
+                .product(name: "Linter Institute Rules", package: "swift-institute-linter-rules"),
+                .product(name: "Linter Primitives Rules", package: "swift-primitives-linter-rules"),
+                .product(name: "Linter Standards Rules", package: "swift-standards-linter-rules"),
             ]
         ),
         .executableTarget(
@@ -249,7 +265,7 @@ let package = Package(
                 .target(name: "Linter Reporter Text"),
                 .target(name: "Linter Reporter SARIF"),
                 .product(name: "Environment", package: "swift-environment"),
-                .product(name: "Linter", package: "swift-linter"),
+                .product(name: "Lint", package: "swift-lint"),
                 .product(name: "File System", package: "swift-file-system"),
                 .product(name: "JSON", package: "swift-json"),
                 .product(name: "Process", package: "swift-process"),

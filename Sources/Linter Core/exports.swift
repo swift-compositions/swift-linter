@@ -1,1 +1,1 @@
-@_exported public import Linter
+@_exported public import Lint

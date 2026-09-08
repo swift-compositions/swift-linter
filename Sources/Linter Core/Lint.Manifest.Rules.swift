@@ -1,4 +1,4 @@
-public import Linter
+public import Lint
 
 extension Lint.Manifest {
 

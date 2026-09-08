@@ -1,6 +1,6 @@
 public import JSON
 public import Linter_Core
-public import Linter
+public import Lint
 public import Linter_Reporter_Text
 public import Terminal
 

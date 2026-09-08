@@ -1,4 +1,4 @@
-internal import Linter
+internal import Lint
 internal import Manifest
 internal import SwiftParser
 internal import SwiftSyntax

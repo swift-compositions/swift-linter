@@ -42,7 +42,8 @@ extension Lint.File.Single {
   public static func dispatch(
     at consumerPackageRoot: File.Path,
     arguments: [Swift.String],
-    nonce: Swift.String = ""
+    nonce: Swift.String = "",
+    localRunner: Swift.String? = nil
   ) throws(Self.Error) -> Swift.Int32 {
     let consumerLintSwiftPath: File.Path = consumerPackageRoot / "Lint.swift"
 
@@ -59,7 +60,7 @@ extension Lint.File.Single {
 
     let parsed: SourceFileSyntax = Parser.parse(source: source)
 
-    if let runnerBinary: Swift.String = Environment.read("SWIFT_LINTER_RUNNER") {
+    if let runnerBinary: Swift.String = localRunner ?? Environment.read("SWIFT_LINTER_RUNNER") {
       switch Self.Classifier.classify(source: source, parsed: parsed) {
       case .fastPathStandardBundle(let bundle):
         return try Runner.run(
@@ -82,8 +83,10 @@ extension Lint.File.Single {
           nonce: nonce
         )
 
-      case .evalFallback:
-        break
+      case .evalFallback(let reason):
+        if localRunner != nil {
+          throw .unsupportedLocalConfiguration(reason: reason)
+        }
       }
     }
 

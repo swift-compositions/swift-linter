@@ -1,4 +1,4 @@
-public import Linter
+public import Lint
 
 extension Lint.Run.Control {
   public struct Evidence: Equatable, Sendable {

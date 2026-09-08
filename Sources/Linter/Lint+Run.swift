@@ -1,7 +1,7 @@
 internal import File_System
 internal import JSON
 public import Linter_Core
-public import Linter
+public import Lint
 internal import Process
 public import SPM_Standard
 internal import Standard_Library_Extensions

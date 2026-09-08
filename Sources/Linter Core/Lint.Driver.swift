@@ -1,6 +1,6 @@
 internal import Environment
 public import File_System
-internal import Linter
+internal import Lint
 internal import Manifest_Loader
 internal import Manifest
 internal import Manifest_Resolver

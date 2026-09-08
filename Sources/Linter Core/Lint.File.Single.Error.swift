@@ -14,6 +14,8 @@ extension Lint.File.Single {
 
     case malformedPackageCall(path: File.Path, description: Swift.String)
 
+    case unsupportedLocalConfiguration(reason: Swift.String)
+
     case materializationFailed(reason: Swift.String)
 
     case spawnFailed(consumerPackageRoot: File.Path, description: Swift.String)

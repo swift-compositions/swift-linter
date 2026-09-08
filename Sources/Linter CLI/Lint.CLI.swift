@@ -36,6 +36,12 @@ extension Lint {
     var linter: Swift.String?
 
     @Option(
+      name: .long,
+      help: "Run a workspace-built rule runner; reject configurations that require package evaluation."
+    )
+    var localRunner: Swift.String?
+
+    @Option(
       name: [.customLong("exit-policy"), .customLong("strict")],
       help: """
         Exit policy. Choices: advisory (exit 0 always), strict (exit non-zero when any \
@@ -137,6 +143,13 @@ extension Lint.CLI {
       throw .failure
     }
 
+    if localRunner != nil && linter != nil {
+      Lint.CLI.writeError(
+        "[swift-linter] error: --local-runner reads Lint.swift at the consumer root and cannot be combined with --lint-swift-path.\n"
+      )
+      throw ExitCode.validationFailure
+    }
+
     do throws(Kernel.Environment.Error) {
       try Environment.write(
         Lint.Reporter.Format.Channel.variable,
@@ -161,7 +174,8 @@ extension Lint.CLI {
         dispatchedExitCode = try Lint.File.Single.dispatch(
           at: consumerRoot,
           arguments: paths,
-          nonce: runNonce
+          nonce: runNonce,
+          localRunner: localRunner
         )
       } catch {
         Lint.CLI.writeError(
@@ -173,6 +187,13 @@ extension Lint.CLI {
         throw ExitCode(dispatchedExitCode)
       }
       return
+    }
+
+    if localRunner != nil {
+      Lint.CLI.writeError(
+        "[swift-linter] error: --local-runner requires a Lint.swift with a swift-linter-tools-version header and a supported bundle selection.\n"
+      )
+      throw ExitCode.validationFailure
     }
 
     if let dispatchedExitCode = Lint.Driver.dispatch.nested(
