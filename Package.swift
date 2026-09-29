@@ -57,10 +57,7 @@ let package = Package(
             url: "https://github.com/swift-molecules/swift-lint.git",
             branch: "main"
         ),
-        .package(
-            url: "https://github.com/swift-atoms/swift-manifest.git",
-            branch: "main"
-        ),
+        .package(url: "https://github.com/swift-atoms/swift-manifest.git", branch: "main", traits: ["Parser"]),
         .package(
             url: "https://github.com/swift-atoms/swift-package.git",
             branch: "main"
