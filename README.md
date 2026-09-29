@@ -348,11 +348,11 @@ The implementation factors across five sibling packages:
 
 | Package | Layer | Role |
 |---------|-------|------|
-| **swift-compositions/swift-linter** (this) | L4 (Compositions) | Engine, CLI, reporters |
-| swift-compositions/swift-linter-rules | L4 | Default rule packs |
-| swift-compositions/swift-manifests | L4 | Manifest loader + parent-chain resolver |
-| swift-molecules/swift-manifest | L2 (Molecules) | `Manifest.Dependency`, `Manifest.NestedPackage` types |
-| swift-molecules/swift-linter | L2 | `Lint.Configuration`, `Lint.Rule.Protocol`, `Lint.Filter`, the typed-DSL surface |
+| **swift-compositions/swift-linter** (this) | Compositions | Engine, CLI, reporters |
+| swift-compositions/swift-linter-rules | Compositions | Default rule packs |
+| swift-compositions/swift-manifests | Compositions | Manifest loader + parent-chain resolver |
+| swift-atoms/swift-manifest | Atoms | `Manifest.Dependency`, `Manifest.NestedPackage` types |
+| swift-molecules/swift-lint | Molecules | `Lint.Configuration`, `Lint.Rule.Protocol`, `Lint.Filter`, the typed-DSL surface |
 
 The factorization reflects the institute's four-layer architecture: L2
 molecules provide the typed DSL surface and dependency-shape types;

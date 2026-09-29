@@ -148,10 +148,6 @@ let package = Package(
             dependencies: [
                 .product(name: "ASCII", package: "swift-ascii"),
                 .product(name: "Glob", package: "swift-glob"),
-                .product(
-                    name: "Glob",
-                    package: "swift-glob"
-                ),
                 .product(name: "Lint", package: "swift-lint"),
                 .product(name: "Manifest", package: "swift-manifest"),
                 .product(name: "Package", package: "swift-package"),
@@ -165,10 +161,6 @@ let package = Package(
                 .product(name: "SPM Standard", package: "swift-spm-standard"),
                 .product(name: "URI Standard", package: "swift-uri-standard"),
                 .product(name: "Version", package: "swift-version"),
-                .product(
-                    name: "Version",
-                    package: "swift-version"
-                ),
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
                 .product(name: "SwiftOperators", package: "swift-syntax"),
