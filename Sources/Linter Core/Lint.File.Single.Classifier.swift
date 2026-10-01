@@ -25,7 +25,7 @@ extension Lint.File.Single.Classifier {
     parsed sourceFile: SourceFileSyntax
   ) -> Lint.File.Single.Classification {
 
-    if Manifest.Manifest.Parent.scan(in: source) != nil {
+    if Manifest::Manifest.Parent.scan(in: source) != nil {
       return .evalFallback(reason: "consumer declares a `// parent:` inheritance chain")
     }
 

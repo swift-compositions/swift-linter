@@ -78,7 +78,7 @@ extension Lint.CLI {
 extension Lint.CLI {
   #if !os(Windows)
     fileprivate static func bytes(of text: Swift.String) -> [Byte] {
-      text.utf8.map(Byte.init)
+      [Byte](utf8: text)
     }
   #else
     fileprivate static func bytes(of text: Swift.String) -> [Swift.UInt8] {

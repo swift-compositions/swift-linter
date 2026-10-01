@@ -58,6 +58,8 @@ let package = Package(
             branch: "main"
         ),
         .package(url: "https://github.com/swift-atoms/swift-manifest.git", branch: "main", traits: ["Parser"]),
+        .package(url: "https://github.com/swift-atoms/swift-byte.git", branch: "main"),
+        .package(url: "https://github.com/swift-atoms/swift-text.git", branch: "main", traits: ["Byte"]),
         .package(
             url: "https://github.com/swift-atoms/swift-package.git",
             branch: "main"
@@ -72,7 +74,8 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/swift-atoms/swift-version.git",
-            branch: "main"
+            branch: "main",
+            traits: ["Parser"]
         ),
         .package(url: "https://github.com/swift-iso/swift-iso-9945.git", branch: "main"),
         .package(url: "https://github.com/swift-microsoft/swift-windows-32.git", branch: "main"),
@@ -101,6 +104,7 @@ let package = Package(
             dependencies: [
                 .target(name: "Linter Core"),
                 .product(name: "Cardinal", package: "swift-cardinal"),
+                .product(name: "Byte", package: "swift-byte"),
                 .product(name: "Lint", package: "swift-lint"),
                 .product(name: "Terminal", package: "swift-terminal"),
                 .product(
@@ -147,6 +151,8 @@ let package = Package(
             name: "Linter Core",
             dependencies: [
                 .product(name: "ASCII", package: "swift-ascii"),
+                .product(name: "Cardinal", package: "swift-cardinal"),
+                .product(name: "Text", package: "swift-text"),
                 .product(name: "Glob", package: "swift-glob"),
                 .product(name: "Lint", package: "swift-lint"),
                 .product(name: "Manifest", package: "swift-manifest"),
@@ -255,6 +261,8 @@ let package = Package(
                 .target(name: "Linter Reporter SARIF"),
                 .product(name: "Environment", package: "swift-environment"),
                 .product(name: "Lint", package: "swift-lint"),
+                .product(name: "Cardinal", package: "swift-cardinal"),
+                .product(name: "Text", package: "swift-text"),
                 .product(name: "File System", package: "swift-file-system"),
                 .product(name: "JSON", package: "swift-json"),
                 .product(name: "Process", package: "swift-process"),

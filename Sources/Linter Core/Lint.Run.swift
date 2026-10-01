@@ -124,7 +124,7 @@ extension Lint.Run {
           }
         }
         var manager = Source.Manager()
-        let bytes = control.source.utf8.map(Byte.init)
+        let bytes = [Byte](utf8: control.source)
         let path = control.path.underlying
         let fileID = manager.register(fileID: path, filePath: path, content: bytes)
         let file = manager.file(for: fileID)

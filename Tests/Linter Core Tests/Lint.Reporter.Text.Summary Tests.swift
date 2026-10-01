@@ -1,3 +1,4 @@
+import Cardinal
 import Linter
 import Linter_Reporter_Text
 import Testing

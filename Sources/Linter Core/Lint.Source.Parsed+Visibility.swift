@@ -1,4 +1,6 @@
+internal import Cardinal
 internal import Lint
+internal import Text
 internal import SwiftSyntax
 
 extension Lint.Source.Parsed {

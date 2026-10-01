@@ -78,7 +78,7 @@ extension Lint.Driver {
     ) {}
   }
 
-  fileprivate static func manifestDependencies() -> [Manifest.Manifest.Dependency]? {
+  fileprivate static func manifestDependencies() -> [Manifest::Manifest.Dependency]? {
 
     guard let linterPath = Environment.read("SWIFT_LINTER_PATH") else {
       return nil
@@ -94,19 +94,19 @@ extension Lint.Driver {
       return nil
     }
     return [
-      Manifest.Manifest.Dependency(
+      Manifest::Manifest.Dependency(
         path: (workspace / "swift-json").string,
         name: "swift-json",
         product: "JSON",
         imports: ["JSON"]
       ),
-      Manifest.Manifest.Dependency(
+      Manifest::Manifest.Dependency(
         path: (workspace / "swift-file-system").string,
         name: "swift-file-system",
         product: "File System",
         imports: ["File_System"]
       ),
-      Manifest.Manifest.Dependency(
+      Manifest::Manifest.Dependency(
         path: linterPath,
         name: "swift-linter",
         product: "Linter",

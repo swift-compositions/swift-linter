@@ -3,6 +3,7 @@ public import Package
 public import SPM_Standard
 internal import SwiftParser
 internal import SwiftSyntax
+internal import Byte
 internal import Version
 
 extension Lint.File.Single {
@@ -321,8 +322,10 @@ extension Lint.File.Single.Extractor {
     sourcePath: File.Path,
     role: Swift.String
   ) throws(Lint.File.Single.Error) -> Version.Semantic {
-    do throws(Version.Semantic.Error) {
-      return try Version.Semantic(literal)
+    var input = ArraySlice([Byte](utf8: literal))
+    let version: Version.Semantic
+    do throws(Version.Semantic.ParserError) {
+      version = try Version.Semantic.parser.parse(&input)
     } catch {
       throw .malformedPackageCall(
         path: sourcePath,
@@ -330,6 +333,14 @@ extension Lint.File.Single.Extractor {
           "`.package(url:..., \(role) \"\(literal)\")` is not valid SemVer 2.0.0: \(error)"
       )
     }
+    guard input.isEmpty else {
+      throw .malformedPackageCall(
+        path: sourcePath,
+        description:
+          "`.package(url:..., \(role) \"\(literal)\")` is not valid SemVer 2.0.0: trailing characters"
+      )
+    }
+    return version
   }
 
 }

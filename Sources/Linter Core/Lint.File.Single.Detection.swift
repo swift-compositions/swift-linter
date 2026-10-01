@@ -1,4 +1,5 @@
 public import File_System
+internal import Byte
 internal import Version
 
 extension Lint.File.Single {
@@ -46,7 +47,13 @@ extension Lint.File.Single.Detection {
         while let last = versionSlice.last, last == " " || last == "\t" {
           versionSlice = versionSlice.dropLast()
         }
-        return Version.Tools(Swift.String(versionSlice))
+        var input = ArraySlice([Byte](utf8: Swift.String(versionSlice)))
+        do throws(Version.Tools.ParserError) {
+          let tools = try Version.Tools.parser.parse(&input)
+          return input.isEmpty ? tools : nil
+        } catch {
+          return nil
+        }
       }
       lineCount += 1
       if lineCount >= 30 { break }

@@ -1,4 +1,5 @@
 public import Lint
+public import Text
 public import SwiftSyntax
 
 extension Lint {

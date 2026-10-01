@@ -1,4 +1,5 @@
 public import Lint
+public import Text
 
 extension Lint.Suppression {
 
