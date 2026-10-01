@@ -56,17 +56,17 @@ extension Lint.Run.Outcome.Test.Integration {
     #expect(document.observations.array?.count == outcome.observations.count)
     #expect(document.findings.array?.count == outcome.findings.count)
     #expect(document.repairProposals.array?.count == outcome.repairs.count)
-    #expect(Swift.String(document.summary.files) == Swift.String(outcome.summary.files))
+    #expect(Swift.Int(document.summary.files).map { Swift.String($0) } == Swift.String(outcome.summary.files))
     #expect(
-      Swift.String(document.summary.activeRules)
+      Swift.Int(document.summary.activeRules).map { Swift.String($0) }
         == Swift.String(outcome.summary.rules)
     )
     #expect(
-      Swift.String(document.summary.unmeasuredObservations)
+      Swift.Int(document.summary.unmeasuredObservations).map { Swift.String($0) }
         == Swift.String(outcome.summary.unmeasured)
     )
     #expect(
-      Swift.String(document.summary.findings) == Swift.String(outcome.summary.findings)
+      Swift.Int(document.summary.findings).map { Swift.String($0) } == Swift.String(outcome.summary.findings)
     )
   }
 

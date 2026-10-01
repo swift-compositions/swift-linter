@@ -95,17 +95,17 @@ extension Lint.Reporter.Format.Test.Unit {
     let report = Lint.Reporter.Format.structured.report(for: findings)
     let document = try JSON.parse(report)
 
-    #expect(Swift.String(document.schema) == "2")
+    #expect(Swift.Int(document.schema) == 2)
     #expect(document.files.array?.isEmpty == true)
     #expect(document.activeRules.array?.isEmpty == true)
     #expect(document.applicableRules.array?.isEmpty == true)
     #expect(document.observations.array?.isEmpty == true)
     #expect(document.controls.array?.isEmpty == true)
     #expect(document.findings.array?.count == 1)
-    #expect(Swift.String(document.summary.findings) == "1")
-    #expect(Swift.String(document.summary.files) == "0")
-    #expect(Swift.String(document.summary.activeRules) == "0")
-    #expect(Swift.String(document.summary.applicableRules) == "0")
+    #expect(Swift.Int(document.summary.findings) == 1)
+    #expect(Swift.Int(document.summary.files) == 0)
+    #expect(Swift.Int(document.summary.activeRules) == 0)
+    #expect(Swift.Int(document.summary.applicableRules) == 0)
   }
 
   @Test
