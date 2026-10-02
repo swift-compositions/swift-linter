@@ -18,6 +18,14 @@ extension Lint.Rule {
   fileprivate static let `brand aware fixture` = Lint.Rule(
     id: "brand aware fixture",
     default: .warning,
+    controls: [
+      .init(
+        id: "brand aware fixture fires without the brand",
+        source: "let value = 0",
+        path: "Fixture.swift",
+        expectation: .findings(1)
+      )
+    ],
     observe: Lint.Rule.measured { source, severity in
       if Lint.Brand.owned(["Cardinal"], in: source) { return [] }
       return [
@@ -80,6 +88,14 @@ extension Lint.Rule {
   fileprivate static let `test fixture` = Lint.Rule(
     id: "test fixture",
     default: .warning,
+    controls: [
+      .init(
+        id: "test fixture run fires",
+        source: "let value = 0",
+        path: "Fixture.swift",
+        expectation: .findings(1)
+      )
+    ],
     observe: Lint.Rule.measured { source, severity in
       [
         Diagnostic.Record(

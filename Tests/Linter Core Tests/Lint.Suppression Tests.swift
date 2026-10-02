@@ -128,6 +128,14 @@ extension Lint.Rule {
   fileprivate static let `suppression fixture` = Lint.Rule(
     id: "suppression fixture",
     default: .warning,
+    controls: [
+      .init(
+        id: "suppression fixture fires on the target call",
+        source: "targetCall()",
+        path: "Fixture.swift",
+        expectation: .findings(1)
+      )
+    ],
     observe: Lint.Rule.measured { source, severity in
 
       let visitor = LintSuppressionFixtureVisitor(

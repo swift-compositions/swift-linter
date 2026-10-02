@@ -18,6 +18,14 @@ extension Lint.Rule {
   fileprivate static let `test fixture` = Lint.Rule(
     id: "test fixture",
     default: .warning,
+    controls: [
+      .init(
+        id: "test fixture walker fires",
+        source: "let value = 0",
+        path: "Fixture.swift",
+        expectation: .findings(1)
+      )
+    ],
     observe: Lint.Rule.measured { source, severity in
       [
         Diagnostic.Record(

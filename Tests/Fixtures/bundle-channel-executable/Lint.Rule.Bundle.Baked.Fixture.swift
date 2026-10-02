@@ -4,6 +4,14 @@ extension Lint.Rule {
   fileprivate static let `bundle fixture primitives` = Lint.Rule(
     id: "bundle fixture primitives",
     default: .error,
+    controls: [
+      .init(
+        id: "bundle fixture primitives positive",
+        source: "let value = 0",
+        path: "Controls/Fixture.swift",
+        expectation: .findings(1)
+      )
+    ],
     observe: Lint.Rule.measured { source, severity in
       [
         Diagnostic.Record(
@@ -24,6 +32,14 @@ extension Lint.Rule {
   fileprivate static let `bundle fixture standards` = Lint.Rule(
     id: "bundle fixture standards",
     default: .error,
+    controls: [
+      .init(
+        id: "bundle fixture standards positive",
+        source: "let value = 0",
+        path: "Controls/Fixture.swift",
+        expectation: .findings(1)
+      )
+    ],
     observe: Lint.Rule.measured { source, severity in
       [
         Diagnostic.Record(
@@ -44,6 +60,14 @@ extension Lint.Rule {
   fileprivate static let `bundle fixture institute` = Lint.Rule(
     id: "bundle fixture institute",
     default: .error,
+    controls: [
+      .init(
+        id: "bundle fixture institute positive",
+        source: "let value = 0",
+        path: "Controls/Fixture.swift",
+        expectation: .findings(1)
+      )
+    ],
     observe: Lint.Rule.measured { source, severity in
       [
         Diagnostic.Record(
