@@ -166,18 +166,15 @@ extension Lint.File.Single.Eval {
     } catch {
       return nil
     }
-    guard let workspace: File.Path = linter.parent else {
-      return nil
-    }
     let parentDependencies: [Manifest.Dependency] = [
       Manifest.Dependency(
-        path: (workspace / "swift-json").string,
+        path: Lint.Driver.Manifest.checkout("swift-json", beside: linter).string,
         name: "swift-json",
         product: "JSON",
         imports: ["JSON"]
       ),
       Manifest.Dependency(
-        path: (workspace / "swift-file-system").string,
+        path: Lint.Driver.Manifest.checkout("swift-file-system", beside: linter).string,
         name: "swift-file-system",
         product: "File System",
         imports: ["File_System"]
