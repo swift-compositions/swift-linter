@@ -25,7 +25,7 @@ extension Lint.Driver {
     at consumerPackageRoot: File.Path,
     manifestOverride: File.Path? = nil,
     onMissingLinterPath: () -> Void = {}
-  ) -> Lint.Configuration {
+  ) throws(Lint.Driver.Error) -> Lint.Configuration {
     let manifestDirectory: Swift.String
     let manifestFilename: Swift.String
     if let override = manifestOverride {
@@ -43,21 +43,31 @@ extension Lint.Driver {
       onMissingLinterPath()
       return defaultConfiguration()
     }
+    var loadFailed = false
+    let resolved: Lint.Configuration
     do throws(Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>.Error) {
-      return try Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>
+      resolved = try Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>
         .resolve(
           consumerPackageRoot: manifestDirectory,
           filename: manifestFilename,
           dependencies: dependencies,
-          defaultConfiguration: defaultConfiguration,
+          defaultConfiguration: {
+            loadFailed = true
+            return defaultConfiguration()
+          },
           buildConfiguration: { manifest, parent in
             configuration(from: manifest, parent: parent)
           }
         )
     } catch {
-
-      return defaultConfiguration()
+      throw .resolutionFailed(description: "\(error)")
     }
+    guard !loadFailed else {
+      throw .resolutionFailed(
+        description: "\(manifestFilename) in \(manifestDirectory) did not load against its manifest dependencies"
+      )
+    }
+    return resolved
   }
 }
 
