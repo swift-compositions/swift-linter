@@ -91,7 +91,7 @@ extension Lint.File.Single.Eval {
       ],
       arguments: arguments,
       environment: environment,
-      toolsVersion: "6.3.1"
+      toolsVersion: "6.4"
     )
 
     do throws(Manifest.Executable.Error) {
