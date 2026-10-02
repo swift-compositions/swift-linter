@@ -79,7 +79,7 @@ extension Lint.File.Single.Eval {
       consumerPackageRoot: consumerPackageRoot,
       consumerSourcePath: consumerLintSwiftPath,
       evalRoot: evalRoot,
-      executableName: "Lint",
+      executableName: "Lint Eval",
       dependencies: dependencies,
       platforms: [".macOS(.v27)"],
       swiftLanguageModes: [".v6"],
