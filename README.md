@@ -90,7 +90,7 @@ express.
    subtractions. No nested SwiftPM resolution; one file, one parse.
 
 2. **`Lint/` nested SwiftPM package** (advanced) — a
-   `Lint/Package.swift` + `Lint/Sources/Lint/main.swift` pair that
+   `Lint/Package.swift` + `Lint/Sources/Lint Runner/main.swift` pair that
    imports rule packages and instantiates `Lint.Configuration`
    directly via the result-builder DSL. Required when the consumer
    needs in-house custom rules (arbitrary Swift code defining new
@@ -185,7 +185,7 @@ your-package/
 ├── Sources/...
 └── Lint/
     ├── Package.swift
-    └── Sources/Lint/main.swift
+    └── Sources/Lint Runner/main.swift
 ```
 
 `Lint/Package.swift` depends on the rule packs you want active:
@@ -194,14 +194,14 @@ your-package/
 // Lint/Package.swift
 let package = Package(
     name: "Lint",
-    products: [.executable(name: "Lint", targets: ["Lint"])],
+    products: [.executable(name: "Lint Runner", targets: ["Lint Runner"])],
     dependencies: [
         .package(url: "https://github.com/swift-compositions/swift-linter.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-linter-rules.git", branch: "main"),
     ],
     targets: [
         .executableTarget(
-            name: "Lint",
+            name: "Lint Runner",
             dependencies: [
                 .product(name: "Linter", package: "swift-linter"),
                 .product(name: "Linter Rule Unchecked", package: "swift-linter-rules"),
@@ -212,12 +212,12 @@ let package = Package(
 )
 ```
 
-`Lint/Sources/Lint/main.swift` activates the imported rules through a
+`Lint/Sources/Lint Runner/main.swift` activates the imported rules through a
 `Lint.Configuration` result-builder, then runs the linter against the
 consumer's source tree:
 
 ```swift
-// Lint/Sources/Lint/main.swift
+// Lint/Sources/Lint Runner/main.swift
 import Linter
 import Linter_Rule_Unchecked
 import Linter_Rule_Cardinal
@@ -256,7 +256,7 @@ runs `Lint.run(configuration:)` against the consumer's source tree.
 **`Lint/` is the canonical internal implementation; `Lint.swift` is
 built on top of that.** The engine's mental model is the typed
 `Lint.Configuration` produced by a result-builder DSL — exactly what
-`Lint/Sources/Lint/main.swift` constructs explicitly. `Lint.swift` is a
+`Lint/Sources/Lint Runner/main.swift` constructs explicitly. `Lint.swift` is a
 single-file front-end whose source is parsed by
 `Lint.File.Single.Extractor`, lifted to a `Lint.Configuration` via
 `Lint.Configuration.lift`, and then executed by the same
@@ -283,7 +283,7 @@ is deliberate:
 
 Layer your configuration on top of a canonical configuration hosted at
 a URL. Place the directive in the first 30 lines of `Lint.swift` (or
-`Lint/Sources/Lint/main.swift`):
+`Lint/Sources/Lint Runner/main.swift`):
 
 ```swift
 // swift-linter-tools-version: 0.1

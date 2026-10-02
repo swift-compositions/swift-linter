@@ -10,7 +10,7 @@ let package = Package(
   ],
   targets: [
     .executableTarget(
-      name: "Lint",
+      name: "Lint Runner",
       dependencies: [
         .product(name: "Linter", package: "swift-linter")
       ]

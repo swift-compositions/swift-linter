@@ -21,7 +21,8 @@ extension Lint.Driver.Dispatch {
     do throws(Manifest_Resolver.Manifest.NestedPackage.Error) {
       return try Manifest_Resolver.Manifest.NestedPackage.dispatch(
         at: rootString,
-        arguments: arguments
+        arguments: arguments,
+        executable: "Lint Runner"
       )
     } catch {
       onDispatchError("\(error)")

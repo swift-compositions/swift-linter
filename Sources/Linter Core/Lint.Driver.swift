@@ -28,6 +28,9 @@ extension Lint.Driver {
     let manifestDirectory: Swift.String
     let manifestFilename: Swift.String
     if let override = manifestOverride {
+      guard File.System.Stat.isFile(at: override) else {
+        throw .resolutionFailed(description: "manifest override \(override) does not exist")
+      }
       manifestDirectory = override.parent.map { $0.description } ?? "."
       manifestFilename = override.components.last.map { $0.string } ?? "Lint.swift"
     } else {
@@ -43,31 +46,27 @@ extension Lint.Driver {
         description: "SWIFT_LINTER_PATH is not set to a valid swift-linter checkout; \(manifestFilename) in \(manifestDirectory) cannot be resolved"
       )
     }
-    var loadFailed = false
-    let resolved: Lint.Configuration
     do throws(Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>.Error) {
-      resolved = try Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>
+      return try Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>
         .resolve(
           consumerPackageRoot: manifestDirectory,
           filename: manifestFilename,
           dependencies: dependencies,
-          defaultConfiguration: {
-            loadFailed = true
-            return defaultConfiguration()
-          },
+          defaultConfiguration: defaultConfiguration,
           buildConfiguration: { manifest, parent in
             configuration(from: manifest, parent: parent)
           }
         )
     } catch {
-      throw .resolutionFailed(description: "\(error)")
+      throw switch error {
+      case .consumerLoadFailed(let cause):
+        Lint.Driver.Error.resolutionFailed(
+          description: "\(manifestFilename) in \(manifestDirectory) failed to load: \(cause)"
+        )
+      default:
+        Lint.Driver.Error.resolutionFailed(description: "\(error)")
+      }
     }
-    guard !loadFailed else {
-      throw .resolutionFailed(
-        description: "\(manifestFilename) in \(manifestDirectory) did not load against its manifest dependencies"
-      )
-    }
-    return resolved
   }
 }
 
