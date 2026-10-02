@@ -277,14 +277,7 @@ extension Lint.CLI {
     do throws(Lint.Driver.Error) {
       return try Lint.Driver.configuration(
         at: consumerRoot,
-        manifestOverride: manifestOverride,
-        onMissingLinterPath: {
-          Lint.CLI.writeError(
-            "[swift-linter] error: SWIFT_LINTER_PATH environment variable "
-              + "not set; cannot resolve manifest dependencies. Falling back "
-              + "to default (zero-rules) configuration.\n"
-          )
-        }
+        manifestOverride: manifestOverride
       )
     } catch {
       Lint.CLI.writeError("[swift-linter] error: manifest resolution failed: \(error)\n")

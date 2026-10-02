@@ -474,6 +474,38 @@ import Testing
     }
 
     @Test
+    func `An unset linter path exits nonzero instead of linting with zero rules`() {
+      guard
+        let cli = Lint.Reporter.Format.Test.Executable.product(
+          Lint.Reporter.Format.Test.Executable.cli,
+          variable: "SWIFT_LINTER_TEST_CLI"
+        )
+      else {
+        Issue.record(
+          Comment(
+            rawValue: Lint.Reporter.Format.Test.Executable.missing("swift-linter")
+          )
+        )
+        return
+      }
+      guard
+        let output = Lint.Reporter.Format.Test.Executable.run(
+          cli,
+          arguments: [
+            Lint.Reporter.Format.Test.Executable.fixture("manifest-unresolvable")
+          ],
+          environment: Lint.Reporter.Format.Test.Executable.environment()
+        )
+      else { return }
+      let stderr = Lint.Reporter.Format.Test.Executable.stderr(output)
+      #expect(output.status == .exited(code: 1))
+      #expect(output.stdout?.isEmpty == true)
+      #expect(stderr.contains("[swift-linter] error: manifest resolution failed:"))
+      #expect(stderr.contains("SWIFT_LINTER_PATH"))
+      #expect(!stderr.contains("0 active rules"))
+    }
+
+    @Test
     func `Invalid control catalog exits nonzero with a visible stderr diagnostic and no stdout`() {
       guard
         let runner = Lint.Reporter.Format.Test.Executable.product(

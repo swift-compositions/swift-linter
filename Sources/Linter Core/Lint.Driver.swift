@@ -23,8 +23,7 @@ extension Lint.Driver {
 
   public static func configuration(
     at consumerPackageRoot: File.Path,
-    manifestOverride: File.Path? = nil,
-    onMissingLinterPath: () -> Void = {}
+    manifestOverride: File.Path? = nil
   ) throws(Lint.Driver.Error) -> Lint.Configuration {
     let manifestDirectory: Swift.String
     let manifestFilename: Swift.String
@@ -40,8 +39,9 @@ extension Lint.Driver {
     }
 
     guard let dependencies = manifestDependencies() else {
-      onMissingLinterPath()
-      return defaultConfiguration()
+      throw .resolutionFailed(
+        description: "SWIFT_LINTER_PATH is not set to a valid swift-linter checkout; \(manifestFilename) in \(manifestDirectory) cannot be resolved"
+      )
     }
     var loadFailed = false
     let resolved: Lint.Configuration
