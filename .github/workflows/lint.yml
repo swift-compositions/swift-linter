@@ -98,7 +98,7 @@ jobs:
         with:
           path: consumer
 
-      - uses: swift-institute/.github/.github/actions/configure-private-repos@d1af72d05bf8262fb3918a2f1607b82fafcafdf9  # main 2026-08-03, R4b uniform full-SHA pin
+      - uses: swift-institute/.github/.github/actions/configure-private-repos@a7d550952f7574c09b181d31b2a6c9c719b57f8b  # main 2026-10-03, mints for swift-molecules and swift-compositions
         with:
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           enabled: ${{ inputs.enable-private-repos }}
