@@ -208,7 +208,11 @@ import Testing
     }
   }
 
-  extension Lint.Reporter.Format.Test.Integration {
+  extension Lint.Reporter.Format {
+    @Suite struct `Process Integration` {}
+  }
+
+  extension Lint.Reporter.Format.`Process Integration` {
     @Test
     func `Direct CLI emits one empty SARIF document and keeps its summary on stderr`() {
       guard
