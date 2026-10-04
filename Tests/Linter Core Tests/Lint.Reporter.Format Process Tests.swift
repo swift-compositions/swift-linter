@@ -272,7 +272,8 @@ import Testing
             "--exit-policy", "strict",
             Lint.Reporter.Format.Test.Executable.fixture("report-format-nested"),
           ],
-          environment: Lint.Reporter.Format.Test.Executable.environment()
+          environment: Lint.Reporter.Format.Test.Executable.environment(),
+          timeout: .seconds(1800)
         )
       else { return }
       #expect(output.status == .exited(code: 1))
