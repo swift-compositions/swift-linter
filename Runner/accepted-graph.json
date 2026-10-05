@@ -628,7 +628,7 @@
       "location" : "https://github.com/swift-compositions/swift-institute-linter-rules.git",
       "state" : {
         "branch" : "main",
-        "revision" : "acccf3031d4f357010539dc38217a83245782d31"
+        "revision" : "8073feeeab96a2ec267158cfa64bc5b823c21198"
       }
     },
     {
@@ -700,7 +700,7 @@
       "location" : "https://github.com/swift-iso/swift-iso-9945.git",
       "state" : {
         "branch" : "main",
-        "revision" : "bdd7417f5b534e26118cba8e4296c7359ee51d00"
+        "revision" : "0e0b0871be8103e867b76f39b2bb83155ef9c1b7"
       }
     },
     {
@@ -763,7 +763,7 @@
       "location" : "https://github.com/swift-compositions/swift-linter.git",
       "state" : {
         "branch" : "main",
-        "revision" : "df6046d6d5dc94cd2418fb4c8e4748482141b27a"
+        "revision" : "aa2fbe8e1712a10dbdf5839e234362289ba2d896"
       }
     },
     {
