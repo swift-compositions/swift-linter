@@ -199,16 +199,30 @@ jobs:
           require_revision swift-lint "$(sed -n 's/^swift-lint=//p' /tmp/MANIFEST.txt)"
           install -m 0755 Runner/.build/debug/runner /tmp/stage-swift-linter
           /tmp/stage-swift-linter --inventory > /tmp/RULE-INVENTORY.json
-          jq -e '
+          if ! jq -e '
             .schema == 1
-            and .profileSchema == 1
+            and .profileSchema == 2
             and .structuredResultSchema == 2
             and (.bundles | length > 0)
             and ([.bundles[].bundle] | length == (unique | length))
             and all(.bundles[]; .rules as $rules
               | ($rules | length) > 0
               and (($rules | length) == ($rules | unique | length)))
-          ' /tmp/RULE-INVENTORY.json >/dev/null
+          ' /tmp/RULE-INVENTORY.json >/dev/null; then
+            echo "::error::the rule inventory does not match the expected schema (schema 1, profileSchema 2, structuredResultSchema 2, unique non-empty bundles and rules)"
+            jq -c '{schema, profileSchema, structuredResultSchema, bundles: [.bundles[]? | {bundle, rules: (.rules | length)}]}' /tmp/RULE-INVENTORY.json || head -c 2000 /tmp/RULE-INVENTORY.json
+            jq -c '{"schema == 1": (.schema == 1), "profileSchema == 2": (.profileSchema == 2), "structuredResultSchema == 2": (.structuredResultSchema == 2), "bundles non-empty": (try (.bundles | length > 0) catch false), "bundle names unique": (try ([.bundles[].bundle] | length == (unique | length)) catch false), "rules non-empty and unique": (try all(.bundles[]; .rules as $rules | ($rules | length) > 0 and (($rules | length) == ($rules | unique | length))) catch false)}' /tmp/RULE-INVENTORY.json || true
+            exit 1
+          fi
+
+      - name: Keep the emitted rule inventory
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rule-inventory-linux-x86_64
+          path: /tmp/RULE-INVENTORY.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Runner controls (before publication)
         id: controls
@@ -494,16 +508,21 @@ jobs:
           cp /tmp/stage-swift-linter-macos-arm64 "$stage/swift-linter-macos-arm64"
           test "$(shasum -a 256 "$stage/swift-linter-macos-arm64" | cut -d' ' -f1)" = "${{ steps.controls.outputs.binary-sha256 }}"
           "$stage/swift-linter-macos-arm64" --inventory > "$stage/RULE-INVENTORY-macos-arm64.json"
-          jq -e '
+          if ! jq -e '
             .schema == 1
-            and .profileSchema == 1
+            and .profileSchema == 2
             and .structuredResultSchema == 2
             and (.bundles | length > 0)
             and ([.bundles[].bundle] | length == (unique | length))
             and all(.bundles[]; .rules as $rules
               | ($rules | length) > 0
               and (($rules | length) == ($rules | unique | length)))
-          ' "$stage/RULE-INVENTORY-macos-arm64.json" >/dev/null
+          ' "$stage/RULE-INVENTORY-macos-arm64.json" >/dev/null; then
+            echo "::error::the rule inventory does not match the expected schema (schema 1, profileSchema 2, structuredResultSchema 2, unique non-empty bundles and rules)"
+            jq -c '{schema, profileSchema, structuredResultSchema, bundles: [.bundles[]? | {bundle, rules: (.rules | length)}]}' "$stage/RULE-INVENTORY-macos-arm64.json" || head -c 2000 "$stage/RULE-INVENTORY-macos-arm64.json"
+            jq -c '{"schema == 1": (.schema == 1), "profileSchema == 2": (.profileSchema == 2), "structuredResultSchema == 2": (.structuredResultSchema == 2), "bundles non-empty": (try (.bundles | length > 0) catch false), "bundle names unique": (try ([.bundles[].bundle] | length == (unique | length)) catch false), "rules non-empty and unique": (try all(.bundles[]; .rules as $rules | ($rules | length) > 0 and (($rules | length) == ($rules | unique | length))) catch false)}' "$stage/RULE-INVENTORY-macos-arm64.json" || true
+            exit 1
+          fi
           jq -n \
             --arg platform "macos-arm64" \
             --arg toolchain "$(/usr/bin/xcodebuild -version | tr '\n' ';')" \
@@ -525,6 +544,15 @@ jobs:
                 "swift-lint":$lint}}' > "$stage/MANIFEST-macos-arm64.json"
           (cd "$stage" && shasum -a 256 swift-linter-macos-arm64 RULE-INVENTORY-macos-arm64.json MANIFEST-macos-arm64.json > SHA256SUMS-macos-arm64)
           echo "binary-sha256=$(shasum -a 256 "$stage/swift-linter-macos-arm64" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the emitted rule inventory
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rule-inventory-macos-arm64
+          path: /tmp/stage-macos-arm64/RULE-INVENTORY-macos-arm64.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Hand the controlled macos-arm64 assets to the publication barrier
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
