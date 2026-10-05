@@ -139,6 +139,43 @@ jobs:
           } > /tmp/MANIFEST.txt
           cat /tmp/MANIFEST.txt
 
+      - name: Resolve and compare the Runner graph (before compilation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          swift package resolve --package-path Runner
+          record=/tmp/runner-graph
+          mkdir -p "$record"
+          cp Runner/Package.resolved "$record/Package.resolved"
+          cp Runner/.build/workspace-state.json "$record/workspace-state.json"
+          for checkout in Runner/.build/checkouts/*/; do
+            printf '%s %s\n' "$(basename "$checkout")" "$(git -c safe.directory='*' -C "$checkout" rev-parse HEAD)"
+          done | sort > "$record/checkouts.txt"
+          (sha256sum "$record/Package.resolved" 2>/dev/null || shasum -a 256 "$record/Package.resolved") | tee "$record/Package.resolved.sha256"
+          jq -S --arg engine "$GITHUB_SHA" '(.pins[] | select(.identity == "swift-linter") | .state.revision) = $engine' Runner/accepted-graph.json > "$record/expected.json"
+          jq -S . Runner/Package.resolved > "$record/actual.json"
+          if ! cmp -s "$record/expected.json" "$record/actual.json"; then
+            diff "$record/expected.json" "$record/actual.json" || true
+            echo "::error::the resolved Runner graph differs from the accepted graph (Runner/accepted-graph.json, swift-linter at $GITHUB_SHA); stopping for review"
+            exit 1
+          fi
+          jq -r '.pins[] | "\(.identity) \(.state.revision)"' Runner/Package.resolved | sort > "$record/pins.txt"
+          if ! cmp -s "$record/pins.txt" "$record/checkouts.txt"; then
+            diff "$record/pins.txt" "$record/checkouts.txt" || true
+            echo "::error::a Runner checkout HEAD differs from its resolved pin; stopping for review"
+            exit 1
+          fi
+          echo "Runner graph matches the accepted graph: $(wc -l < "$record/pins.txt") pins, swift-linter at $GITHUB_SHA"
+
+      - name: Keep the Runner graph record
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runner-graph-linux-x86_64
+          path: /tmp/runner-graph/
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Build structured linter
         shell: bash
         run: |
@@ -335,6 +372,43 @@ jobs:
             echo "xcode=${XCODE_VERSION}"
           } > /tmp/MANIFEST-macos-arm64.txt
           cat /tmp/MANIFEST-macos-arm64.txt
+
+      - name: Resolve and compare the Runner graph (before compilation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          swift package resolve --package-path Runner
+          record=/tmp/runner-graph
+          mkdir -p "$record"
+          cp Runner/Package.resolved "$record/Package.resolved"
+          cp Runner/.build/workspace-state.json "$record/workspace-state.json"
+          for checkout in Runner/.build/checkouts/*/; do
+            printf '%s %s\n' "$(basename "$checkout")" "$(git -c safe.directory='*' -C "$checkout" rev-parse HEAD)"
+          done | sort > "$record/checkouts.txt"
+          (sha256sum "$record/Package.resolved" 2>/dev/null || shasum -a 256 "$record/Package.resolved") | tee "$record/Package.resolved.sha256"
+          jq -S --arg engine "$GITHUB_SHA" '(.pins[] | select(.identity == "swift-linter") | .state.revision) = $engine' Runner/accepted-graph.json > "$record/expected.json"
+          jq -S . Runner/Package.resolved > "$record/actual.json"
+          if ! cmp -s "$record/expected.json" "$record/actual.json"; then
+            diff "$record/expected.json" "$record/actual.json" || true
+            echo "::error::the resolved Runner graph differs from the accepted graph (Runner/accepted-graph.json, swift-linter at $GITHUB_SHA); stopping for review"
+            exit 1
+          fi
+          jq -r '.pins[] | "\(.identity) \(.state.revision)"' Runner/Package.resolved | sort > "$record/pins.txt"
+          if ! cmp -s "$record/pins.txt" "$record/checkouts.txt"; then
+            diff "$record/pins.txt" "$record/checkouts.txt" || true
+            echo "::error::a Runner checkout HEAD differs from its resolved pin; stopping for review"
+            exit 1
+          fi
+          echo "Runner graph matches the accepted graph: $(wc -l < "$record/pins.txt") pins, swift-linter at $GITHUB_SHA"
+
+      - name: Keep the Runner graph record
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runner-graph-macos-arm64
+          path: /tmp/runner-graph/
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Build structured linter
         shell: bash
