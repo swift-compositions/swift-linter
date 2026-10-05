@@ -272,6 +272,15 @@ jobs:
             fi
             check "bundle $channel exit" 1 "$status"
           done
+          profiles=$(cd "$fixtures/../institute-source-profiles" && pwd)
+          status=0
+          (cd "$profiles" && { sha256sum -c --quiet SHA256SUMS 2>/dev/null || shasum -a 256 -c --quiet SHA256SUMS; }) || status=$?
+          check "institute source profile checksums" 0 "$status"
+          for bundle in institute primitives standards; do
+            status=0
+            SWIFT_LINTER_BUNDLE=$bundle "$binary" --profile-check "$profiles/$bundle-source-linter-profile.json" || status=$?
+            check "$bundle institute source profile" 0 "$status"
+          done
           [ "$failures" -eq 0 ] || { echo "::error::$failures runner control(s) failed; not publishing"; exit 1; }
           echo "all runner controls passed"
 
@@ -494,6 +503,15 @@ jobs:
               (cd "$fixtures/error" && SWIFT_LINTER_BUNDLE=institutez SWIFT_LINTER_EXIT_POLICY=strict "$binary" . > /dev/null 2>&1) || status=$?
             fi
             check "bundle $channel exit" 1 "$status"
+          done
+          profiles=$(cd "$fixtures/../institute-source-profiles" && pwd)
+          status=0
+          (cd "$profiles" && { sha256sum -c --quiet SHA256SUMS 2>/dev/null || shasum -a 256 -c --quiet SHA256SUMS; }) || status=$?
+          check "institute source profile checksums" 0 "$status"
+          for bundle in institute primitives standards; do
+            status=0
+            SWIFT_LINTER_BUNDLE=$bundle "$binary" --profile-check "$profiles/$bundle-source-linter-profile.json" || status=$?
+            check "$bundle institute source profile" 0 "$status"
           done
           [ "$failures" -eq 0 ] || { echo "::error::$failures runner control(s) failed; not publishing"; exit 1; }
           echo "all runner controls passed"
