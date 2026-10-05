@@ -1,17 +1,21 @@
 {
-  "kind": "reconstructed at deployed source/rule-pack revisions, not captured from the hosted binary",
-  "renderer": "Institute.Source.Application.prepare(subject:xcodeApplication:linter:)",
+  "kind": "rendered at the frozen ENGINE-GRAPH-ADOPTION-2 identities through the real prepare path; reconstructed, not captured from a hosted binary",
+  "renderer": "Institute.Source.Application.prepare(subject:xcodeApplication:linter: .local)",
   "policyRevision": "source-enforcement-v3",
   "profileSchema": 2,
   "subject": "swift-institute/swift-example-cli@6357eacf89f71c5581bed4b3c1c073bf5c6b826f",
   "planner": {
     "institute-application": "254d1fe421aa3533dcab41270311e7778b0b4a86",
-    "institute": "66b1ddcff49596693a9cb02cc62d9c1c4e7e1e2b"
+    "institute": "b556c66366554065d5aca9ddc62828a16e91aca5"
   },
   "packageRevisions": {
     "swift-primitives-linter-rules": "ac9bd4a0291eb89f66671398d0ac07ff6bcf4c90",
     "swift-standards-linter-rules": "bba6401a94f5ba6d87c4a7f1ef1f07064ef25acf",
-    "swift-institute-linter-rules": "acccf3031d4f357010539dc38217a83245782d31",
-    "swift-linter-rules": "b407975e1e018b769c3cf22a901f8f1b709b2984"
-  }
+    "swift-institute-linter-rules": "8073feeeab96a2ec267158cfa64bc5b823c21198",
+    "swift-linter-rules": "b407975e1e018b769c3cf22a901f8f1b709b2984",
+    "swift-lint": "f61f759487c453dd7996de004be8cba21a1e4342",
+    "swift-iso-9945": "0e0b0871be8103e867b76f39b2bb83155ef9c1b7"
+  },
+  "runnerGraph": "8ef3c89fb89eab9c5b0c7d98a30681ef203ed336a99afa23a09d09ba3f7ac23a",
+  "verifiedWith": "swift-linter-macos-arm64 95559b2a4e6a360a97d0246ba272d92684b1501cd78747fb02cb27b9d1ee87d4 (published aa2fbe8e; rule-set check only, new rule implementations not yet baked)"
 }
