@@ -308,4 +308,83 @@ import Testing
     }
   }
 
+  extension Lint.Rule.Bundle.Baked.Channel.Test.Process {
+    private func runPopulated(
+      _ arguments: [Swift.String],
+      bundle: Swift.String?
+    ) -> Process.Output? {
+      guard
+        let runner = Executable.product(
+          Executable.populated,
+          variable: "SWIFT_LINTER_TEST_BUNDLE_FIXTURE"
+        )
+      else {
+        Issue.record(Comment(rawValue: Executable.missing(Executable.populated)))
+        return nil
+      }
+      return Executable.run(runner, arguments: arguments, environment: Executable.environment(bundle: bundle))
+    }
+
+    private var primitivesProfile: Swift.String {
+      Executable.fixture("bundle-channel-profiles/primitives.json")
+    }
+
+    @Test
+    func `A valid profile for another bundle than the requested one exits nonzero before linting`() {
+      guard
+        let output = runPopulated(
+          ["--profile", primitivesProfile, Executable.fixture("report-format-direct")],
+          bundle: "institute"
+        )
+      else { return }
+      #expect(output.status != .exited(code: 0))
+      #expect(Executable.stderr(output).contains("profile bundle primitives does not match requested bundle institute"))
+      #expect(!Executable.stdout(output).contains("bundle fixture primitives"))
+    }
+
+    @Test
+    func `A profile for the requested bundle lints with exactly that bundle`() {
+      guard
+        let output = runPopulated(
+          ["--profile", primitivesProfile, Executable.fixture("report-format-direct")],
+          bundle: "primitives"
+        )
+      else { return }
+      #expect(Executable.stderr(output).contains("profile bundle: primitives"))
+      #expect(Executable.stdout(output).contains("bundle fixture primitives"))
+      #expect(!Executable.stdout(output).contains("bundle fixture institute"))
+    }
+
+    @Test
+    func `An unbound profile run reports the bundle it selected`() {
+      guard
+        let output = runPopulated(
+          ["--profile", primitivesProfile, Executable.fixture("report-format-direct")],
+          bundle: nil
+        )
+      else { return }
+      #expect(Executable.stderr(output).contains("profile bundle: primitives"))
+      #expect(Executable.stdout(output).contains("bundle fixture primitives"))
+    }
+
+    @Test
+    func `An unknown leading option exits nonzero before linting`() {
+      guard
+        let output = runPopulated(
+          ["--profile-check", primitivesProfile],
+          bundle: "institute"
+        )
+      else { return }
+      #expect(output.status != .exited(code: 0))
+      #expect(Executable.stderr(output).contains("unknown option '--profile-check'"))
+      #expect(!Executable.stderr(output).contains("files linted"))
+    }
+
+    @Test
+    func `An invalid path argument exits nonzero`() {
+      guard let output = runPopulated([""], bundle: "institute") else { return }
+      #expect(output.status != .exited(code: 0))
+      #expect(Executable.stderr(output).contains("invalid path argument"))
+    }
+  }
 #endif

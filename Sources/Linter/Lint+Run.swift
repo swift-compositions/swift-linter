@@ -42,8 +42,8 @@ extension Lint {
       let message: Swift.String =
         switch error {
         case .unknownOption(let option):
-          "unknown option '\(option)'; supported: --inventory, --profile <profile.json> <path> ..., or plain paths"
-        case .usage(let usage): usage
+          "unknown option '\(option)'; \(Self.Run.Command.usage)"
+        case .usage(let usage): "\(usage); \(Self.Run.Command.usage)"
         }
       failLoud(message)
     }
@@ -74,6 +74,19 @@ extension Lint {
       do throws(Lint.Profile.Error) { profile = try .read(at: path) } catch {
         failLoud("profile: \(error)")
       }
+      let requested: Lint.Rule.Bundle.Baked?
+      do throws(Lint.Rule.Bundle.Baked.Channel.Error) {
+        requested = try Lint.Rule.Bundle.Baked.Channel.read()
+      } catch {
+        failLoud("bundle channel: \(error)")
+      }
+      do throws(Lint.Profile.Error) { _ = try profile.bound(to: requested) } catch {
+        failLoud("profile: \(error)")
+      }
+      Self.Reporter.Text.emit(
+        text: "profile bundle: \(profile.bundle.token)\n",
+        to: Terminal.Stream.stderr.write
+      )
       guard let baked = bundles[profile.bundle] else {
         failLoud("profile: this runner does not bake bundle '\(profile.bundle.token)'")
       }
@@ -134,8 +147,7 @@ extension Lint {
         try File_System.File.Path(raw)
       }
     } catch {
-      print("[Lint] error: invalid path argument: \(error)")
-      return
+      failLoud("invalid path argument: \(error)")
     }
 
     let format: Lint.Reporter.Format

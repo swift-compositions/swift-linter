@@ -163,3 +163,12 @@ extension Lint.Profile {
     return selected
   }
 }
+
+extension Lint.Profile {
+  public func bound(to requested: Lint.Rule.Bundle.Baked?) throws(Error) -> Self {
+    guard let requested, requested != bundle else { return self }
+    throw .bundle(
+      "profile bundle \(bundle.token) does not match requested bundle \(requested.token)"
+    )
+  }
+}

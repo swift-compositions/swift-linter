@@ -14,6 +14,11 @@ extension Lint.Run.Command {
     case usage(Swift.String)
   }
 
+  public static let usage: Swift.String =
+    "usage: --inventory | --profile <profile.json> <path> ... | [<path> ...]; "
+    + "only the leading token selects the mode, and every later token is a path, "
+    + "even one that looks like an option"
+
   public static func parse(_ arguments: [Swift.String]) throws(Error) -> Self {
     guard let first = arguments.first, first.hasPrefix("--") else {
       return .lint(paths: arguments)

@@ -177,3 +177,40 @@ extension Lint.Profile.Test.`Edge Case` {
     }
   }
 }
+
+extension Lint.Profile.Test.Unit {
+  @Test
+  func `a profile for another bundle than the requested one is rejected`() throws {
+    let profile = try Lint.Profile(
+      revision: "revision",
+      bundle: .primitives,
+      rules: [Self.rule("known").rule.id]
+    )
+    do throws(Lint.Profile.Error) {
+      _ = try profile.bound(to: .institute)
+      Issue.record("a primitives profile was accepted for the institute bundle")
+    } catch {
+      #expect("\(error)".contains("profile bundle primitives does not match requested bundle institute"))
+    }
+  }
+
+  @Test
+  func `a profile for the requested bundle is accepted`() throws {
+    let profile = try Lint.Profile(
+      revision: "revision",
+      bundle: .primitives,
+      rules: [Self.rule("known").rule.id]
+    )
+    #expect(try profile.bound(to: .primitives).bundle == .primitives)
+  }
+
+  @Test
+  func `an unrequested bundle keeps the profile's own bundle`() throws {
+    let profile = try Lint.Profile(
+      revision: "revision",
+      bundle: .standards,
+      rules: [Self.rule("known").rule.id]
+    )
+    #expect(try profile.bound(to: nil).bundle == .standards)
+  }
+}

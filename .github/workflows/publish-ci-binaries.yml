@@ -294,6 +294,11 @@ jobs:
           status=0
           SWIFT_LINTER_BUNDLE=institute "$binary" --profile-check "$profiles/institute-source-linter-profile.json" > /dev/null 2>&1 || status=$?
           check "profile negative --profile-check exit" 1 "$status"
+          for substituted in primitives standards; do
+            status=0
+            SWIFT_LINTER_BUNDLE=institute "$binary" --profile "$profiles/$substituted-source-linter-profile.json" "$(mktemp -d)" > /dev/null 2>&1 || status=$?
+            check "profile negative $substituted substituted for institute exit" 1 "$status"
+          done
           [ "$failures" -eq 0 ] || { echo "::error::$failures runner control(s) failed; not publishing"; exit 1; }
           echo "all runner controls passed"
 
@@ -539,6 +544,11 @@ jobs:
           status=0
           SWIFT_LINTER_BUNDLE=institute "$binary" --profile-check "$profiles/institute-source-linter-profile.json" > /dev/null 2>&1 || status=$?
           check "profile negative --profile-check exit" 1 "$status"
+          for substituted in primitives standards; do
+            status=0
+            SWIFT_LINTER_BUNDLE=institute "$binary" --profile "$profiles/$substituted-source-linter-profile.json" "$(mktemp -d)" > /dev/null 2>&1 || status=$?
+            check "profile negative $substituted substituted for institute exit" 1 "$status"
+          done
           [ "$failures" -eq 0 ] || { echo "::error::$failures runner control(s) failed; not publishing"; exit 1; }
           echo "all runner controls passed"
 
