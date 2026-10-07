@@ -291,6 +291,9 @@ jobs:
             SWIFT_LINTER_BUNDLE=institute "$binary" --profile "$negatives/$case.json" "$(mktemp -d)" > /dev/null 2>&1 || status=$?
             check "profile negative $case exit" 1 "$status"
           done
+          status=0
+          SWIFT_LINTER_BUNDLE=institute "$binary" --profile-check "$profiles/institute-source-linter-profile.json" > /dev/null 2>&1 || status=$?
+          check "profile negative --profile-check exit" 1 "$status"
           [ "$failures" -eq 0 ] || { echo "::error::$failures runner control(s) failed; not publishing"; exit 1; }
           echo "all runner controls passed"
 
@@ -533,6 +536,9 @@ jobs:
             SWIFT_LINTER_BUNDLE=institute "$binary" --profile "$negatives/$case.json" "$(mktemp -d)" > /dev/null 2>&1 || status=$?
             check "profile negative $case exit" 1 "$status"
           done
+          status=0
+          SWIFT_LINTER_BUNDLE=institute "$binary" --profile-check "$profiles/institute-source-linter-profile.json" > /dev/null 2>&1 || status=$?
+          check "profile negative --profile-check exit" 1 "$status"
           [ "$failures" -eq 0 ] || { echo "::error::$failures runner control(s) failed; not publishing"; exit 1; }
           echo "all runner controls passed"
 
