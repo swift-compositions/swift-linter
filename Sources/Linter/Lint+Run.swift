@@ -35,8 +35,20 @@ extension Lint {
   }
 
   public static func run(bundles: [Lint.Rule.Bundle.Baked: [Lint.Rule.Configuration]]) {
-    let arguments = [Swift.String](Swift.CommandLine.arguments.dropFirst())
-    if arguments == ["--inventory"] {
+    let command: Self.Run.Command
+    do throws(Self.Run.Command.Error) {
+      command = try .parse([Swift.String](Swift.CommandLine.arguments.dropFirst()))
+    } catch {
+      let message: Swift.String =
+        switch error {
+        case .unknownOption(let option):
+          "unknown option '\(option)'; \(Self.Run.Command.usage)"
+        case .usage(let usage): "\(usage); \(Self.Run.Command.usage)"
+        }
+      failLoud(message)
+    }
+    switch command {
+    case .inventory:
       let inventories = bundles.keys.sorted { $0.token < $1.token }.map { bundle in
         JSON.object([
           ("bundle", JSON(stringLiteral: bundle.token)),
@@ -57,16 +69,24 @@ extension Lint {
         ("bundles", .array(inventories)),
       ])
       Swift.print(document.serialize(pretty: false))
-      return
-    }
-    if arguments.first == "--profile" {
-      guard arguments.count >= 3 else {
-        failLoud("profile invocation requires --profile <profile.json> <path> ...")
-      }
+    case .profile(let path, let paths):
       let profile: Lint.Profile
-      do throws(Lint.Profile.Error) { profile = try .read(at: arguments[1]) } catch {
+      do throws(Lint.Profile.Error) { profile = try .read(at: path) } catch {
         failLoud("profile: \(error)")
       }
+      let requested: Lint.Rule.Bundle.Baked?
+      do throws(Lint.Rule.Bundle.Baked.Channel.Error) {
+        requested = try Lint.Rule.Bundle.Baked.Channel.read()
+      } catch {
+        failLoud("bundle channel: \(error)")
+      }
+      do throws(Lint.Profile.Error) { _ = try profile.bound(to: requested) } catch {
+        failLoud("profile: \(error)")
+      }
+      Self.Reporter.Text.emit(
+        text: "profile bundle: \(profile.bundle.token)\n",
+        to: Terminal.Stream.stderr.write
+      )
       guard let baked = bundles[profile.bundle] else {
         failLoud("profile: this runner does not bake bundle '\(profile.bundle.token)'")
       }
@@ -74,36 +94,33 @@ extension Lint {
       do throws(Lint.Profile.Error) { selected = try profile.select(from: baked) } catch {
         failLoud("profile: \(error)")
       }
-      run(
-        configuration: Self.Configuration { selected },
-        paths: [Swift.String](arguments.dropFirst(2))
-      )
-      return
-    }
-    let read: Lint.Rule.Bundle.Baked?
-    do throws(Lint.Rule.Bundle.Baked.Channel.Error) {
-      read = try Lint.Rule.Bundle.Baked.Channel.read()
-    } catch {
-      failLoud("bundle channel: \(error)")
-    }
-    guard let requested = read else {
-      failLoud(
-        "bundle channel (\(Lint.Rule.Bundle.Baked.Channel.variable)) is unset; "
-          + "the dispatcher must select a baked bundle before spawning this runner"
-      )
-    }
-    guard let bundle: [Lint.Rule.Configuration] = bundles[requested] else {
+      run(configuration: Self.Configuration { selected }, paths: paths)
+    case .lint:
+      let read: Lint.Rule.Bundle.Baked?
+      do throws(Lint.Rule.Bundle.Baked.Channel.Error) {
+        read = try Lint.Rule.Bundle.Baked.Channel.read()
+      } catch {
+        failLoud("bundle channel: \(error)")
+      }
+      guard let requested = read else {
+        failLoud(
+          "bundle channel (\(Lint.Rule.Bundle.Baked.Channel.variable)) is unset; "
+            + "the dispatcher must select a baked bundle before spawning this runner"
+        )
+      }
+      guard let bundle: [Lint.Rule.Configuration] = bundles[requested] else {
 
-      failLoud("bundle channel: this runner does not bake bundle '\(requested.token)'")
-    }
-    guard !bundle.isEmpty else {
+        failLoud("bundle channel: this runner does not bake bundle '\(requested.token)'")
+      }
+      guard !bundle.isEmpty else {
 
-      failLoud(
-        "bundle channel: bundle '\(requested.token)' bakes zero rules; "
-          + "a zero-finding run from an empty rule set is not a clean result"
-      )
+        failLoud(
+          "bundle channel: bundle '\(requested.token)' bakes zero rules; "
+            + "a zero-finding run from an empty rule set is not a clean result"
+        )
+      }
+      run(bundle: bundle)
     }
-    run(bundle: bundle)
   }
 
   private static func failLoud(_ message: Swift.String) -> Never {
@@ -130,8 +147,7 @@ extension Lint {
         try File_System.File.Path(raw)
       }
     } catch {
-      print("[Lint] error: invalid path argument: \(error)")
-      return
+      failLoud("invalid path argument: \(error)")
     }
 
     let format: Lint.Reporter.Format
