@@ -763,7 +763,7 @@
       "location" : "https://github.com/swift-compositions/swift-linter.git",
       "state" : {
         "branch" : "main",
-        "revision" : "42a6a8796742ccae4aa00e33f419ac4c33998c66"
+        "revision" : "94f357fd6d29ac07043f17161c48f6ccf8b3216d"
       }
     },
     {
@@ -1564,7 +1564,7 @@
       "location" : "https://github.com/swift-compositions/swift-windows.git",
       "state" : {
         "branch" : "main",
-        "revision" : "267c091887a3c192e444717c9f62fb19b2253dc0"
+        "revision" : "94a9b7e31f8e9edfd29a6e4dd63ea7417c842478"
       }
     },
     {
