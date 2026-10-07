@@ -1,5 +1,5 @@
 {
-  "kind": "rendered at the frozen ENGINE-GRAPH-ADOPTION-2 identities through the real prepare path; reconstructed, not captured from a hosted binary",
+  "kind": "rendered at the RULES-WINDOW-1 accepted-graph identities (candidate 683d3649) through the real prepare path; reconstructed, not captured from a hosted binary",
   "renderer": "Institute.Source.Application.prepare(subject:xcodeApplication:linter: .local)",
   "policyRevision": "source-enforcement-v3",
   "profileSchema": 2,
@@ -10,12 +10,12 @@
   },
   "packageRevisions": {
     "swift-primitives-linter-rules": "ac9bd4a0291eb89f66671398d0ac07ff6bcf4c90",
-    "swift-standards-linter-rules": "bba6401a94f5ba6d87c4a7f1ef1f07064ef25acf",
-    "swift-institute-linter-rules": "8073feeeab96a2ec267158cfa64bc5b823c21198",
+    "swift-standards-linter-rules": "73ec2127ee1e8ffc4f3208df9bd8a5d3018f358d",
+    "swift-institute-linter-rules": "4b2b17526df2405a37ec8bd7fbe72cddf50e423f",
     "swift-linter-rules": "b407975e1e018b769c3cf22a901f8f1b709b2984",
     "swift-lint": "f61f759487c453dd7996de004be8cba21a1e4342",
-    "swift-iso-9945": "0e0b0871be8103e867b76f39b2bb83155ef9c1b7"
+    "swift-iso-9945": "b935c5d98819e763ee176b3573288795b4a14a7e"
   },
-  "runnerGraph": "8ef3c89fb89eab9c5b0c7d98a30681ef203ed336a99afa23a09d09ba3f7ac23a",
-  "verifiedWith": "swift-linter-macos-arm64 95559b2a4e6a360a97d0246ba272d92684b1501cd78747fb02cb27b9d1ee87d4 (published aa2fbe8e; rule-set check only, new rule implementations not yet baked)"
+  "runnerGraph": "683d364988d6518fb20b3957f442816814fc9f55b5608752f2aaf5ec60a87231",
+  "verifiedWith": "swift-linter-macos-arm64 b20c1e1b0e28244c43d0bd6717b9c680f23f8f3f488df872c823e78c214d267b (published 42a6a879; rule-set check only, 4b2b1752/73ec2127 not yet baked)"
 }

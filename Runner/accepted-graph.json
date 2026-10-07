@@ -628,7 +628,7 @@
       "location" : "https://github.com/swift-compositions/swift-institute-linter-rules.git",
       "state" : {
         "branch" : "main",
-        "revision" : "8073feeeab96a2ec267158cfa64bc5b823c21198"
+        "revision" : "4b2b17526df2405a37ec8bd7fbe72cddf50e423f"
       }
     },
     {
@@ -700,7 +700,7 @@
       "location" : "https://github.com/swift-iso/swift-iso-9945.git",
       "state" : {
         "branch" : "main",
-        "revision" : "0e0b0871be8103e867b76f39b2bb83155ef9c1b7"
+        "revision" : "b935c5d98819e763ee176b3573288795b4a14a7e"
       }
     },
     {
@@ -763,7 +763,7 @@
       "location" : "https://github.com/swift-compositions/swift-linter.git",
       "state" : {
         "branch" : "main",
-        "revision" : "aa2fbe8e1712a10dbdf5839e234362289ba2d896"
+        "revision" : "42a6a8796742ccae4aa00e33f419ac4c33998c66"
       }
     },
     {
@@ -871,7 +871,7 @@
       "location" : "https://github.com/swift-molecules/swift-memory-allocation.git",
       "state" : {
         "branch" : "main",
-        "revision" : "1859a7855f9996d42e60439cee41bc4c013d405a"
+        "revision" : "21a907ea5f2701b4fd114632334de0332256ab84"
       }
     },
     {
@@ -1384,7 +1384,7 @@
       "location" : "https://github.com/swift-standards/swift-standards-linter-rules.git",
       "state" : {
         "branch" : "main",
-        "revision" : "bba6401a94f5ba6d87c4a7f1ef1f07064ef25acf"
+        "revision" : "73ec2127ee1e8ffc4f3208df9bd8a5d3018f358d"
       }
     },
     {
@@ -1573,7 +1573,7 @@
       "location" : "https://github.com/swift-microsoft/swift-windows-32.git",
       "state" : {
         "branch" : "main",
-        "revision" : "eecb5a03cf71174c99d3ed26993d94b7787480cb"
+        "revision" : "e050c4a5e7deb059016820093975c872ea3d44c5"
       }
     },
     {

@@ -278,8 +278,18 @@ jobs:
           check "institute source profile checksums" 0 "$status"
           for bundle in institute primitives standards; do
             status=0
-            SWIFT_LINTER_BUNDLE=$bundle "$binary" --profile-check "$profiles/$bundle-source-linter-profile.json" || status=$?
+            SWIFT_LINTER_BUNDLE=$bundle "$binary" --profile "$profiles/$bundle-source-linter-profile.json" "$(mktemp -d)" || status=$?
             check "$bundle institute source profile" 0 "$status"
+          done
+          negatives=$(mktemp -d)
+          jq '.rules |= .[1:]' "$profiles/institute-source-linter-profile.json" > "$negatives/incomplete.json"
+          jq '.rules += ["no such rule"]' "$profiles/institute-source-linter-profile.json" > "$negatives/extra.json"
+          jq '.bundle = "primitives"' "$profiles/institute-source-linter-profile.json" > "$negatives/wrong-bundle.json"
+          printf '{"schema": 2, "bundle": ' > "$negatives/malformed.json"
+          for case in malformed missing wrong-bundle incomplete extra; do
+            status=0
+            SWIFT_LINTER_BUNDLE=institute "$binary" --profile "$negatives/$case.json" "$(mktemp -d)" > /dev/null 2>&1 || status=$?
+            check "profile negative $case exit" 1 "$status"
           done
           [ "$failures" -eq 0 ] || { echo "::error::$failures runner control(s) failed; not publishing"; exit 1; }
           echo "all runner controls passed"
@@ -510,8 +520,18 @@ jobs:
           check "institute source profile checksums" 0 "$status"
           for bundle in institute primitives standards; do
             status=0
-            SWIFT_LINTER_BUNDLE=$bundle "$binary" --profile-check "$profiles/$bundle-source-linter-profile.json" || status=$?
+            SWIFT_LINTER_BUNDLE=$bundle "$binary" --profile "$profiles/$bundle-source-linter-profile.json" "$(mktemp -d)" || status=$?
             check "$bundle institute source profile" 0 "$status"
+          done
+          negatives=$(mktemp -d)
+          jq '.rules |= .[1:]' "$profiles/institute-source-linter-profile.json" > "$negatives/incomplete.json"
+          jq '.rules += ["no such rule"]' "$profiles/institute-source-linter-profile.json" > "$negatives/extra.json"
+          jq '.bundle = "primitives"' "$profiles/institute-source-linter-profile.json" > "$negatives/wrong-bundle.json"
+          printf '{"schema": 2, "bundle": ' > "$negatives/malformed.json"
+          for case in malformed missing wrong-bundle incomplete extra; do
+            status=0
+            SWIFT_LINTER_BUNDLE=institute "$binary" --profile "$negatives/$case.json" "$(mktemp -d)" > /dev/null 2>&1 || status=$?
+            check "profile negative $case exit" 1 "$status"
           done
           [ "$failures" -eq 0 ] || { echo "::error::$failures runner control(s) failed; not publishing"; exit 1; }
           echo "all runner controls passed"
