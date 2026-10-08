@@ -69,6 +69,10 @@ import Testing
         let candidate = unsafe Swift.String(cString: value)
         if isExecutable(candidate) { return candidate }
       }
+      return built(name)
+    }
+
+    fileprivate static func built(_ name: Swift.String) -> Swift.String? {
       guard let executable = runningImagePath(),
         let separator = executable.lastIndex(of: "/")
       else { return nil }
@@ -106,7 +110,8 @@ import Testing
       policy: Swift.String? = nil,
       runner: Swift.String? = nil,
       linter: Swift.String? = nil,
-      bundle: Swift.String? = nil
+      bundle: Swift.String? = nil,
+      dispatch: Swift.String? = nil
     ) -> [Swift.String: Swift.String] {
       var values = Environment.Snapshot.current().values
       _ = values.removeValue(forKey: Lint.Reporter.Format.Channel.variable)
@@ -116,11 +121,13 @@ import Testing
       _ = values.removeValue(forKey: Lint.File.Single.Channel.parent.variable)
       _ = values.removeValue(forKey: "SWIFT_LINTER_RUNNER")
       _ = values.removeValue(forKey: "SWIFT_LINTER_PATH")
+      _ = values.removeValue(forKey: Lint.Driver.Dispatch.Prebuilt.variable)
       if let format { values[Lint.Reporter.Format.Channel.variable] = format }
       if let policy { values[Lint.Run.Policy.Channel.variable] = policy }
       if let runner { values["SWIFT_LINTER_RUNNER"] = runner }
       if let linter { values["SWIFT_LINTER_PATH"] = linter }
       if let bundle { values[Lint.Rule.Bundle.Baked.Channel.variable] = bundle }
+      if let dispatch { values[Lint.Driver.Dispatch.Prebuilt.variable] = dispatch }
       return values
     }
 
@@ -203,6 +210,14 @@ import Testing
       }
     }
 
+    fileprivate static func requireBuilt(_ name: Swift.String) -> Swift.String? {
+      guard let path = built(name) else {
+        Issue.record(Comment(rawValue: missing(name)))
+        return nil
+      }
+      return path
+    }
+
     fileprivate static func missing(_ name: Swift.String) -> Swift.String {
       "helper executable '\(name)' not found from \(runningImagePath() ?? "<unknown image>")"
     }
@@ -265,6 +280,11 @@ import Testing
         return
       }
       guard
+        let runner = Lint.Reporter.Format.Test.Executable.requireBuilt(
+          Lint.Reporter.Format.Test.Executable.runner
+        )
+      else { return }
+      guard
         let output = Lint.Reporter.Format.Test.Executable.run(
           cli,
           arguments: [
@@ -272,8 +292,10 @@ import Testing
             "--exit-policy", "strict",
             Lint.Reporter.Format.Test.Executable.fixture("report-format-nested"),
           ],
-          environment: Lint.Reporter.Format.Test.Executable.environment(),
-          timeout: .seconds(1800)
+          environment: Lint.Reporter.Format.Test.Executable.environment(
+            bundle: Lint.Rule.Bundle.Baked.primitives.rawValue,
+            dispatch: runner
+          )
         )
       else { return }
       #expect(output.status == .exited(code: 1))
@@ -300,6 +322,11 @@ import Testing
         return
       }
       guard
+        let runner = Lint.Reporter.Format.Test.Executable.requireBuilt(
+          Lint.Reporter.Format.Test.Executable.runner
+        )
+      else { return }
+      guard
         let output = Lint.Reporter.Format.Test.Executable.run(
           cli,
           arguments: [
@@ -308,10 +335,10 @@ import Testing
             Lint.Reporter.Format.Test.Executable.fixture("report-format-eval"),
           ],
           environment: Lint.Reporter.Format.Test.Executable.environment(
-            linter: Lint.Reporter.Format.Test.Executable.root()
-          ),
-
-          timeout: .seconds(1800)
+            linter: Lint.Reporter.Format.Test.Executable.root(),
+            bundle: Lint.Rule.Bundle.Baked.primitives.rawValue,
+            dispatch: runner
+          )
         )
       else { return }
       #expect(output.status == .exited(code: 1))
@@ -546,6 +573,60 @@ import Testing
           "[Lint] error: source measurement failed: invalidControlCatalog"
         )
       )
+    }
+
+    @Test
+    func `A missing package-built dispatch executable fails the test instead of skipping`() {
+      withKnownIssue {
+        #expect(
+          Lint.Reporter.Format.Test.Executable.requireBuilt(
+            "swift-linter-absent-dispatch-fixture"
+          ) == nil
+        )
+      }
+    }
+
+    @Test(arguments: ["report-format-nested", "report-format-eval"])
+    func `An unresolvable dispatch executable fails closed without building the package`(
+      fixture: Swift.String
+    ) {
+      guard
+        let cli = Lint.Reporter.Format.Test.Executable.product(
+          Lint.Reporter.Format.Test.Executable.cli,
+          variable: "SWIFT_LINTER_TEST_CLI"
+        )
+      else {
+        Issue.record(
+          Comment(
+            rawValue: Lint.Reporter.Format.Test.Executable.missing("swift-linter")
+          )
+        )
+        return
+      }
+      let absent =
+        "\(Lint.Reporter.Format.Test.Executable.root())/.build/swift-linter-absent-dispatch-fixture"
+      guard
+        let output = Lint.Reporter.Format.Test.Executable.run(
+          cli,
+          arguments: [
+            "--format", "sarif",
+            "--exit-policy", "strict",
+            Lint.Reporter.Format.Test.Executable.fixture(fixture),
+          ],
+          environment: Lint.Reporter.Format.Test.Executable.environment(
+            linter: Lint.Reporter.Format.Test.Executable.root(),
+            bundle: Lint.Rule.Bundle.Baked.primitives.rawValue,
+            dispatch: absent
+          ),
+          timeout: .seconds(60)
+        )
+      else { return }
+      let stderr = Lint.Reporter.Format.Test.Executable.stderr(output)
+      #expect(output.status == .exited(code: 1))
+      #expect(output.stdout?.isEmpty == true)
+      #expect(stderr.contains("dispatch failed"))
+      #expect(stderr.contains(absent))
+      #expect(!stderr.contains("active rules"))
     }
   }
 

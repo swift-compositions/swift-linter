@@ -42,24 +42,9 @@ extension Lint.File.Single.Eval {
       nonce: nonce
     )
 
-    let linterDependency: Package.Dependency
-    if let rawPath: Swift.String = Environment.read("SWIFT_LINTER_PATH") {
-      do throws(Paths.Path.Error) {
-        _ = try Paths.Path(rawPath)
-      } catch {
-        throw .materializationFailed(
-          reason: "SWIFT_LINTER_PATH `\(rawPath)` is not a valid path: \(error)"
-        )
-      }
-      linterDependency = Package.Dependency(
-        source: .path(rawPath),
-        name: "swift-linter",
-        products: ["Linter"]
-      )
-    } else {
-      linterDependency = Self.publishedEngineDependency()
-    }
-    let dependencies: [Package.Dependency] = [linterDependency] + extractedDependencies
+    let dependencies: [Package.Dependency] =
+      [try Self.linterDependency(path: Environment.read("SWIFT_LINTER_PATH"))]
+      + extractedDependencies
 
     let environment: [Swift.String: Swift.String] = Self.environment(
       inheriting: Environment.Snapshot.current(),
@@ -75,23 +60,24 @@ extension Lint.File.Single.Eval {
     let evalRoot: File.Path = stateRoot / "eval"
 
     try Self.invalidate(resolutionAt: evalRoot)
-    let configuration = Manifest.Executable.Configuration(
+    if let executable: Swift.String = Lint.Driver.Dispatch.Prebuilt.executable() {
+      do throws(Lint.Driver.Dispatch.Prebuilt.Error) {
+        return try Lint.Driver.Dispatch.Prebuilt.run(
+          executable: executable,
+          arguments: arguments,
+          environment: environment
+        )
+      } catch {
+        throw .spawnFailed(consumerPackageRoot: consumerPackageRoot, description: "\(error)")
+      }
+    }
+    let configuration: Manifest.Executable.Configuration = Self.configuration(
       consumerPackageRoot: consumerPackageRoot,
-      consumerSourcePath: consumerLintSwiftPath,
+      consumerLintSwiftPath: consumerLintSwiftPath,
       evalRoot: evalRoot,
-      executableName: "Lint Eval",
       dependencies: dependencies,
-      platforms: [".macOS(.v27)"],
-      swiftLanguageModes: [".v6"],
-      ecosystemSettings: [
-        ".enableUpcomingFeature(\"ExistentialAny\")",
-        ".enableUpcomingFeature(\"InternalImportsByDefault\")",
-        ".enableUpcomingFeature(\"MemberImportVisibility\")",
-        ".enableUpcomingFeature(\"NonisolatedNonsendingByDefault\")",
-      ],
       arguments: arguments,
-      environment: environment,
-      toolsVersion: "6.4"
+      environment: environment
     )
 
     do throws(Manifest.Executable.Error) {
@@ -111,6 +97,54 @@ extension Lint.File.Single.Eval {
         )
       }
     }
+  }
+
+  internal static func linterDependency(
+    path rawPath: Swift.String?
+  ) throws(Lint.File.Single.Error) -> Package.Dependency {
+    guard let rawPath else {
+      return Self.publishedEngineDependency()
+    }
+    do throws(Paths.Path.Error) {
+      _ = try Paths.Path(rawPath)
+    } catch {
+      throw .materializationFailed(
+        reason: "SWIFT_LINTER_PATH `\(rawPath)` is not a valid path: \(error)"
+      )
+    }
+    return Package.Dependency(
+      source: .path(rawPath),
+      name: "swift-linter",
+      products: ["Linter"]
+    )
+  }
+
+  internal static func configuration(
+    consumerPackageRoot: File.Path,
+    consumerLintSwiftPath: File.Path,
+    evalRoot: File.Path,
+    dependencies: [Package.Dependency],
+    arguments: [Swift.String],
+    environment: [Swift.String: Swift.String]
+  ) -> Manifest.Executable.Configuration {
+    Manifest.Executable.Configuration(
+      consumerPackageRoot: consumerPackageRoot,
+      consumerSourcePath: consumerLintSwiftPath,
+      evalRoot: evalRoot,
+      executableName: "Lint Eval",
+      dependencies: dependencies,
+      platforms: [".macOS(.v27)"],
+      swiftLanguageModes: [".v6"],
+      ecosystemSettings: [
+        ".enableUpcomingFeature(\"ExistentialAny\")",
+        ".enableUpcomingFeature(\"InternalImportsByDefault\")",
+        ".enableUpcomingFeature(\"MemberImportVisibility\")",
+        ".enableUpcomingFeature(\"NonisolatedNonsendingByDefault\")",
+      ],
+      arguments: arguments,
+      environment: environment,
+      toolsVersion: "6.4"
+    )
   }
 
   internal static func invalidate(

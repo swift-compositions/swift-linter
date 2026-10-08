@@ -266,6 +266,7 @@ let package = Package(
                 .product(name: "File System", package: "swift-file-system"),
                 .product(name: "JSON", package: "swift-json"),
                 .product(name: "Process", package: "swift-process"),
+                .product(name: "Manifest Executable", package: "swift-manifests"),
                 .product(name: "SPM Standard", package: "swift-spm-standard"),
                 .product(name: "URI Standard", package: "swift-uri-standard"),
             ]
