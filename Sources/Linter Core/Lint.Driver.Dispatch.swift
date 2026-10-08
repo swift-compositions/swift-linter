@@ -1,3 +1,4 @@
+internal import Environment
 public import File_System
 internal import Manifest_Resolver
 
@@ -17,6 +18,18 @@ extension Lint.Driver.Dispatch {
     let rootString: Swift.String = consumerPackageRoot.string
     guard Manifest_Resolver.Manifest.NestedPackage.detect(at: rootString) else {
       return nil
+    }
+    if let executable: Swift.String = Prebuilt.executable() {
+      do throws(Prebuilt.Error) {
+        return try Prebuilt.run(
+          executable: executable,
+          arguments: arguments,
+          environment: Environment.Snapshot.current().values
+        )
+      } catch {
+        onDispatchError("\(error)")
+        return 1
+      }
     }
     do throws(Manifest_Resolver.Manifest.NestedPackage.Error) {
       return try Manifest_Resolver.Manifest.NestedPackage.dispatch(

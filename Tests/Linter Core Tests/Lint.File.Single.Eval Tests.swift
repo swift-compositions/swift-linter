@@ -1,6 +1,8 @@
 import Environment
 import File_System
 import Linter
+import Manifest_Executable
+import SPM_Standard
 import Testing
 
 @testable import Linter_Core
@@ -145,5 +147,100 @@ extension Lint.File.Single.Test.Eval.Unit {
         == Lint.Reporter.Format.Channel.value(.sarif)
     )
     #expect(environment[Lint.File.Single.Channel.parent.variable] == parent.string)
+  }
+}
+
+extension Lint.File.Single.Test.Eval.Unit {
+  private static func root(testFile: Swift.String = #filePath) -> Swift.String {
+    var components = testFile.split(separator: "/", omittingEmptySubsequences: false)
+      .map(Swift.String.init)
+    _ = components.popLast()
+    _ = components.popLast()
+    _ = components.popLast()
+    return components.joined(separator: "/")
+  }
+
+  @Test
+  func `The SARIF eval fixture generates the exact engine manifest`() throws {
+    let root = Self.root()
+    let consumer = File.Path("\(root)/Tests/Fixtures/report-format-eval")
+    let source = try Lint.File.Single.contents(of: consumer / "Lint.swift")
+    let extracted = try Lint.File.Single.Extractor.dependencies(
+      from: source,
+      sourcePath: consumer / "Lint.swift",
+      consumerPackageRoot: consumer
+    )
+    #expect(extracted.isEmpty)
+
+    let linter = try Lint.File.Single.Eval.linterDependency(path: root)
+    #expect(linter.source == .path(root))
+    #expect(linter.name == "swift-linter")
+    #expect(linter.products == ["Linter"])
+
+    let configuration = Lint.File.Single.Eval.configuration(
+      consumerPackageRoot: consumer,
+      consumerLintSwiftPath: consumer / "Lint.swift",
+      evalRoot: consumer / ".swift-lint" / "eval",
+      dependencies: [linter] + extracted,
+      arguments: [consumer.string],
+      environment: [:]
+    )
+    #expect(configuration.executableName == "Lint Eval")
+    #expect(configuration.dependencies.count == 1)
+    #expect(configuration.dependencies.first?.source == .path(root))
+    #expect(configuration.dependencies.first?.name == "swift-linter")
+    #expect(configuration.dependencies.first?.products == ["Linter"])
+    #expect(configuration.platforms == [".macOS(.v27)"])
+    #expect(configuration.swiftLanguageModes == [".v6"])
+    #expect(
+      configuration.ecosystemSettings == [
+        ".enableUpcomingFeature(\"ExistentialAny\")",
+        ".enableUpcomingFeature(\"InternalImportsByDefault\")",
+        ".enableUpcomingFeature(\"MemberImportVisibility\")",
+        ".enableUpcomingFeature(\"NonisolatedNonsendingByDefault\")",
+      ]
+    )
+    #expect(configuration.arguments == [consumer.string])
+    #expect(configuration.toolsVersion == "6.4")
+  }
+
+  @Test
+  func `Without a linter path the eval manifest depends on the published engine`() throws {
+    let linter = try Lint.File.Single.Eval.linterDependency(path: nil)
+    #expect(linter.name == "swift-linter")
+    #expect(linter.products == ["Linter"])
+    #expect(linter.source != .path(Self.root()))
+  }
+
+  @Test
+  func `The SARIF nested fixture keeps its exact package manifest`() throws {
+    let manifest = try Lint.File.Single.contents(
+      of: File.Path("\(Self.root())/Tests/Fixtures/report-format-nested/Lint/Package.swift")
+    )
+    #expect(
+      manifest == """
+        // swift-tools-version: 6.4
+
+        import PackageDescription
+
+        let package = Package(
+          name: "report-format-nested-fixture",
+          platforms: [.macOS(.v27)],
+          dependencies: [
+            .package(url: "https://github.com/swift-compositions/swift-linter.git", branch: "main")
+          ],
+          targets: [
+            .executableTarget(
+              name: "Lint Runner",
+              dependencies: [
+                .product(name: "Linter", package: "swift-linter")
+              ]
+            )
+          ],
+          swiftLanguageModes: [.v6]
+        )
+
+        """
+    )
   }
 }
