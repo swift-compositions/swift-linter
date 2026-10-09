@@ -1,0 +1,18 @@
+commit e5f3c420025f8b0a71444d2b7bbd7b9bbbd1718d
+Author: Coen ten Thije Boonkkamp <coen@coenttb.com>
+Date:   Thu Oct 8 19:47:10 2026 +0200
+
+    BASELINE unmeasurable input: manifest cannot be evaluated (local scratch only)
+
+diff --git a/Package.swift b/Package.swift
+index 5fddec0..3a5e453 100644
+--- a/Package.swift
++++ b/Package.swift
+@@ -77,3 +77,7 @@ for target in package.targets where ![.system, .binary, .plugin, .macro].contain
+             .treatAllWarnings(as: .error),
+         ]
+ }
++// swift-tools-version: 6.3
++import PackageDescription
++
++let package = Package(
