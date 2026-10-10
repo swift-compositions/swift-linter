@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import platform
 import shutil
+import shlex
 import subprocess
 import sys
 import uuid
@@ -46,6 +47,8 @@ def arguments(argv):
     sub = p.add_subparsers(dest="command", required=True)
     setup = sub.add_parser("setup", help="clone pinned rule sources, resolve, build, and create a workspace")
     setup.add_argument("--checkouts", type=Path, help="directory for the five rule/core clones")
+    setup.add_argument("--policy", type=Path, help="clone the exact rule revisions required by a full compliance policy")
+    setup.add_argument("--source-repositories", type=Path, help="JSON mapping the five rule/core names to Git URLs or local repositories (for unpublished candidates)")
     for mode in ("check", "report"):
         s = sub.add_parser(mode, help="check selected rules" if mode == "check" else "report the full bundle")
         s.add_argument("package", type=Path, help="Swift package directory containing Package.swift")
@@ -93,18 +96,52 @@ def save(path, value):
     write(path, json.dumps(value, indent=2, sort_keys=True) + "\n")
 
 
+def swift_target():
+    machine = platform.machine()
+    if machine not in ("arm64", "x86_64"):
+        raise Failure(f"unsupported macOS architecture: {machine}")
+    return machine + "-apple-macosx27.0"
+
+
+def build_profile():
+    return ["--build-system", BUILD_SYSTEM, "-Xswiftc", "-target", "-Xswiftc", swift_target()]
+
+
 def prerequisites():
     if platform.system() != "Darwin":
         raise Failure("this workflow supports macOS; see scripts/README.md for prerequisites")
     for tool in ("git", "swift", "xcodebuild"):
         if not shutil.which(tool):
             raise Failure(f"{tool} is missing; install/select full Xcode 27.1 with Swift 6.4")
+    if int(platform.mac_ver()[0].split(".")[0]) < 27:
+        raise Failure("this build profile requires macOS 27 or newer")
     version = run(["swift", "--version"])
     if "Swift version 6.4" not in version:
         raise Failure(f"Swift 6.4 is required; select Xcode 27.1 with DEVELOPER_DIR. Found: {version}")
     return {"swift": version, "xcode": run(["xcodebuild", "-version"]),
             "developerDirectory": run(["xcode-select", "-p"]),
             "DEVELOPER_DIR": os.environ.get("DEVELOPER_DIR")}
+
+
+def source_repositories(path):
+    if path is None:
+        return {}
+    path = path.expanduser().resolve()
+    try:
+        data = json.loads(path.read_text())
+        if not isinstance(data, dict) or set(data) != set(NAMES[1:]):
+            raise ValueError("expected all five rule/core repository names")
+        result = {}
+        for name, origin in data.items():
+            if not isinstance(origin, str) or not origin.strip():
+                raise ValueError(f"{name}: expected a Git URL or local repository path")
+            if "://" not in origin and not origin.startswith("git@"):
+                local = Path(origin).expanduser()
+                origin = str((local if local.is_absolute() else path.parent / local).resolve())
+            result[name] = origin
+        return result
+    except (OSError, ValueError, TypeError) as error:
+        raise Failure(f"invalid source repositories file {path}: {error}", 64)
 
 
 def configure(args, log):
@@ -134,9 +171,11 @@ def configure(args, log):
             pins = {p["identity"]: p for p in json.loads((REPO / "Runner/accepted-graph.json").read_text())["pins"]}
             pin = pins[name]
             path.parent.mkdir(parents=True, exist_ok=True)
-            print(f"Cloning {name} at {pin['state']['revision'][:12]}", file=sys.stderr)
-            run(["git", "clone", pin["location"], str(path)], log=log)
-            run(["git", "-C", str(path), "checkout", "--detach", pin["state"]["revision"]], log=log)
+            revision = getattr(args, "policy_sources", {}).get(name, pin["state"]["revision"])
+            origin = getattr(args, "clone_origins", {}).get(name, pin["location"])
+            print(f"Cloning {name} at {revision[:12]}", file=sys.stderr)
+            run(["git", "clone", "--no-local", origin, str(path)], log=log)
+            run(["git", "-C", str(path), "checkout", "--detach", revision], log=log)
         if not (path / "Package.swift").is_file():
             raise Failure(f"{name}: missing Package.swift in {path}; correct {config}")
         top = Path(run(["git", "-C", str(path), "rev-parse", "--show-toplevel"]))
@@ -178,7 +217,7 @@ def bindings(state):
 def build(paths, log):
     # New graph/config => new state; ordinary source edits reuse the incremental build.
     inputs = [(REPO / "Runner" / p).read_bytes() for p in ("Package.swift", "accepted-graph.json")]
-    key = hashlib.sha256(BUILD_SYSTEM.encode() + b"\0".join(inputs) + json.dumps({k: str(v) for k, v in paths.items()}, sort_keys=True).encode()).hexdigest()[:16]
+    key = hashlib.sha256((BUILD_SYSTEM + swift_target()).encode() + b"\0".join(inputs) + json.dumps({k: str(v) for k, v in paths.items()}, sort_keys=True).encode()).hexdigest()[:16]
     state = LOCAL / "builds" / key
     for relative in ("Package.swift", "Sources/runner/main.swift"):
         write(state / relative, (REPO / "Runner" / relative).read_text())
@@ -203,7 +242,7 @@ def build(paths, log):
     # snapshot window, so an edit during resolution cannot label an old copy as new.
     write(state / "Sources/runner/main.swift", (REPO / "Runner/Sources/runner/main.swift").read_text())
     print(f"Building local sources; log: {log}", file=sys.stderr)
-    run(swift("build", "--build-system", BUILD_SYSTEM, "--product", "runner"), log=log)
+    run(swift("build", *build_profile(), "--product", "runner"), log=log)
     after = {n: identity(paths[n]) for n in NAMES}
     if before != after:
         raise Failure("local engine/rule sources changed during the build; rerun")
@@ -227,7 +266,7 @@ def workspace(paths):
 
 def test_sources(paths, package, evidence, toolchain):
     """Use SwiftPM's native test route, with a private scratch tree and verified edits."""
-    key = hashlib.sha256((BUILD_SYSTEM + json.dumps({n: str(p) for n, p in paths.items()}, sort_keys=True)).encode()).hexdigest()[:12]
+    key = hashlib.sha256((BUILD_SYSTEM + swift_target() + json.dumps({n: str(p) for n, p in paths.items()}, sort_keys=True)).encode()).hexdigest()[:12]
     # Keep compiler-generated Swift files under .build, which the source walker excludes.
     scratch = LOCAL / "test-builds" / (package + "-" + key) / ".build"
     target = paths[package]
@@ -250,7 +289,7 @@ def test_sources(paths, package, evidence, toolchain):
             raise Failure(f"test dependency {name} is not bound to {path}")
     before = {n: identity(p) for n, p in paths.items()}
     receipt = {"toolchain": toolchain, "sources": before, "testPackage": package,
-               "localTestDependencies": {n: str(p) for n, p in local.items()}, "command": swift("test", "--build-system", BUILD_SYSTEM), "buildSystem": BUILD_SYSTEM}
+               "localTestDependencies": {n: str(p) for n, p in local.items()}, "command": swift("test", *build_profile()), "buildSystem": BUILD_SYSTEM, "swiftTarget": swift_target()}
     save(evidence / "receipt.json", receipt)
     environment = os.environ.copy()
     real_swift = str(Path(shutil.which("swift")).resolve())
@@ -258,11 +297,12 @@ def test_sources(paths, package, evidence, toolchain):
     write(launcher, (REPO / "scripts/swift-native").read_text())
     launcher.chmod(0o755)
     environment.update(LINT_LOCAL_REAL_SWIFT=real_swift,
+                       LINT_LOCAL_SWIFT_TARGET=swift_target(),
                        LINT_LOCAL_SWIFT_TRACE=str(evidence / "swift-invocations.jsonl"),
                        PATH=str(launcher.parent) + os.pathsep + environment.get("PATH", ""))
     receipt["swiftExecutable"] = real_swift
     save(evidence / "receipt.json", receipt)
-    run(swift("test", "--build-system", BUILD_SYSTEM), env=environment, log=log)
+    run(swift("test", *build_profile()), env=environment, log=log)
     if before != {n: identity(p) for n, p in paths.items()}:
         raise Failure("local sources changed during tests; rerun")
     if any(dependencies()[n].get("path") != str(p) for n, p in local.items()):
@@ -377,7 +417,7 @@ def load_policy(path):
         require(set(policy["sources"]) == set(NAMES))
         for revision in policy["sources"].values():
             require(isinstance(revision, str) and len(revision) == 40 and all(c in "0123456789abcdef" for c in revision))
-        require(set(policy["toolchain"]) == {"swift", "xcode", "buildSystem"})
+        require(set(policy["toolchain"]) == {"swift", "xcode", "buildSystem", "swiftTarget"})
         require(all(isinstance(v, str) and v for v in policy["toolchain"].values()))
         require(isinstance(policy["dependencyPins"], list) and policy["dependencyPins"])
         require(len({p["identity"] for p in policy["dependencyPins"]}) == len(policy["dependencyPins"]))
@@ -402,7 +442,7 @@ def load_policy(path):
 
 
 def verify_policy_tools(policy, sources, toolchain):
-    actual = {"swift": toolchain["swift"], "xcode": toolchain["xcode"], "buildSystem": BUILD_SYSTEM}
+    actual = {"swift": toolchain["swift"], "xcode": toolchain["xcode"], "buildSystem": BUILD_SYSTEM, "swiftTarget": swift_target()}
     if actual != policy["toolchain"]:
         raise Failure("compliance policy toolchain differs; select the documented Xcode/Swift build profile")
     for name in NAMES:
@@ -486,6 +526,8 @@ def locked():
 def main(argv=None):
     args = arguments(argv)
     policy = load_policy(args.policy.expanduser().resolve()) if getattr(args, "policy", None) else None
+    args.policy_sources = policy["sources"] if policy else {}
+    args.clone_origins = source_repositories(getattr(args, "source_repositories", None))
     if args.command in ("check", "report"):
         if policy and args.bundle and args.bundle != policy["bundle"]:
             raise Failure("--bundle conflicts with the compliance policy", 64)
@@ -509,25 +551,29 @@ def main(argv=None):
         ws = workspace(paths)
         inv = inventory(binary)
         receipt = {"toolchain": toolchain, "sources": sources, "buildState": str(state),
-                   "binarySHA256": hashlib.sha256(binary.read_bytes()).hexdigest(), "buildSystem": BUILD_SYSTEM}
+                   "binarySHA256": hashlib.sha256(binary.read_bytes()).hexdigest(), "buildSystem": BUILD_SYSTEM, "swiftTarget": swift_target()}
         write(evidence / "Package.resolved", (state / "Package.resolved").read_text())
         save(evidence / "receipt.json", receipt)
         print("LOCAL ENGINE (not a release)", file=sys.stderr)
         for name, info in sources.items():
             print(f"  {name} {info['revision'][:12]} +{info['changed']}changed +{info['untracked']}untracked "
                   f"snapshot={info['snapshot'][:16]} {info['path']}", file=sys.stderr)
+        if policy:
+            verify_policy_tools(policy, sources, toolchain)
+            verify_policy_inventory(policy, inv[policy["bundle"]], json.loads((state / "Package.resolved").read_text()))
+            save(evidence / "policy.json", policy)
+            receipt["policySHA256"] = hashlib.sha256(json.dumps(policy, sort_keys=True).encode()).hexdigest()
+            save(evidence / "receipt.json", receipt)
         if args.command == "setup":
-            print(f"Setup complete. Workspace: {ws}\nCheck: ./scripts/lint-local check /path/to/package")
+            command = ["./scripts/lint-local", "--config", str(args.config.expanduser().resolve()), "check", "/path/to/package"]
+            if policy:
+                command.extend(["--policy", str(args.policy.expanduser().resolve())])
+            print(f"Setup complete. Workspace: {ws}\nCheck: {shlex.join(command)}")
             return 0
         if args.command == "rules":
             for bundle, rules in sorted(inv.items()):
                 print(bundle + ":\n  " + "\n  ".join(rules))
             return 0
-        if policy:
-            verify_policy_tools(policy, sources, toolchain)
-            verify_policy_inventory(policy, inv[args.bundle], json.loads((state / "Package.resolved").read_text()))
-            save(evidence / "policy.json", policy)
-            receipt["policySHA256"] = hashlib.sha256(json.dumps(policy, sort_keys=True).encode()).hexdigest()
         selected = policy["requiredRules"] if policy else args.rules if args.command == "check" else inv[args.bundle]
         missing = set(selected) - set(inv[args.bundle])
         if missing:

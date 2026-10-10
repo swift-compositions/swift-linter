@@ -10,26 +10,47 @@ from pathlib import Path
 import sys
 
 
-def arguments(args):
+def arguments(args, target=None):
     if not args or args[0] not in ('build', 'run', 'test'):
         return args
+    if target not in ('arm64-apple-macosx27.0', 'x86_64-apple-macosx27.0'):
+        raise ValueError('lint-local must supply its macOS 27 Swift target')
+    backend = False
+    compiler_args = []
     for index, value in enumerate(args):
         if value == '--build-system':
             if index + 1 == len(args) or args[index + 1] != 'native':
                 raise ValueError('this regression profile requires --build-system native')
-            return args
-        if value.startswith('--build-system='):
+            backend = True
+        elif value.startswith('--build-system='):
             if value != '--build-system=native':
                 raise ValueError('this regression profile requires --build-system native')
-            return args
-    return [args[0], '--build-system', 'native', *args[1:]]
+            backend = True
+        elif value == '-Xswiftc' and index + 1 < len(args):
+            compiler_args.append(args[index + 1])
+        elif value.startswith('-Xswiftc='):
+            compiler_args.append(value[len('-Xswiftc='):])
+    has_target = False
+    for index, value in enumerate(compiler_args):
+        if value == '-target':
+            if index + 1 == len(compiler_args) or compiler_args[index + 1] != target:
+                raise ValueError('conflicting Swift deployment target in regression command')
+            has_target = True
+        elif value.startswith('-target='):
+            if value != '-target=' + target:
+                raise ValueError('conflicting Swift deployment target in regression command')
+            has_target = True
+    flags = ([] if backend else ['--build-system', 'native'])
+    if not has_target:
+        flags += ['-Xswiftc', '-target', '-Xswiftc', target]
+    return [args[0], *flags, *args[1:]]
 
 
 def main():
     real = os.environ.get('LINT_LOCAL_REAL_SWIFT')
     if not real or not Path(real).is_file() or Path(real).resolve() == Path(__file__).resolve():
         raise ValueError('lint-local must supply the original Swift executable')
-    command = [real, *arguments(sys.argv[1:])]
+    command = [real, *arguments(sys.argv[1:], os.environ.get("LINT_LOCAL_SWIFT_TARGET"))]
     trace = os.environ.get('LINT_LOCAL_SWIFT_TRACE')
     if trace:
         with open(trace, 'a') as output:

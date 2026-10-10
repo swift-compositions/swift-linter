@@ -128,7 +128,8 @@ The policy is JSON with these fields:
 - `requiredRules`: every rule ID in that bundle, with no duplicates.
 - `sources`: all six configured checkout names mapped to full Git commit IDs.
 - `toolchain`: exact `swift` and `xcode` strings from a run receipt, and
-  `buildSystem: "native"`.
+  `buildSystem: "native"`, plus `swiftTarget` (for example
+  `arm64-apple-macosx27.0`).
 - `dependencyPins`: the resolved tool graph's `pins`, retaining `identity`,
   `location`, and `state` for each dependency.
 - `reviewedSuppressions`: normally `[]`. Each existing, justified suppression
@@ -162,3 +163,37 @@ source, paths containing spaces, suppression context changes, incomplete rule
 inventories, wrong tool revisions, invalid policies, and setup failure. It uses
 the package's existing reviewed suppression as a mutation fixture; it does not
 add a suppression or weaken any rule.
+
+
+### Fresh setup from a pinned policy
+
+Clone the engine at the policy's `sources.swift-linter` revision. From that new
+engine checkout, run:
+
+```sh
+./scripts/lint-local setup --policy /path/to/swift-effects/compliance-policy.json
+./scripts/lint-local check /path/to/swift-effects --policy /path/to/swift-effects/compliance-policy.json
+```
+
+Setup clones the policy's exact five rule/core revisions, binds them locally,
+builds, and validates the full inventory and dependency pins. Existing checkouts
+are checked, never reset to match a policy. A policy mismatch is an actionable
+setup failure.
+
+For unpublished local candidates, clone the engine from its maintained checkout
+with `git clone --no-local /path/to/engine /new/directory/swift-linter`. Supply
+`setup --source-repositories /path/to/sources.json` to clone the other five from
+explicit repositories. That JSON maps `swift-institute-linter-rules`,
+`swift-primitives-linter-rules`, `swift-standards-linter-rules`, `swift-linter-rules`,
+and `swift-lint` to Git URLs or local repository paths. Relative paths are relative
+to the JSON file. Git object data is copied; build caches and uncommitted changes
+are not copied. The sources must contain the policy's commits.
+
+The macOS-only compiler profile explicitly targets macOS 27 for every Swift
+compilation, including regression subprocesses, using
+`-Xswiftc -target -Xswiftc <architecture>-apple-macosx27.0`. This keeps dependencies
+with older declared deployment floors from failing when this graph's `System`
+module is already present. The profile, source revisions, actual commands, and
+subprocess trace are retained as evidence. It does not rename the ecosystem or
+SDK modules. Validate the complete cold/repeat engine suite when changing this
+profile or toolchain; passing an individual nested fixture is insufficient.

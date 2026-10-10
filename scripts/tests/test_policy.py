@@ -23,7 +23,7 @@ class PolicyTests(unittest.TestCase):
                     "state": {"revision": "b" * 40}}
         self.policy = {"schema": 1, "bundle": "institute", "requiredRules": ["rule"],
                        "sources": {name: "a" * 40 for name in lint.NAMES},
-                       "toolchain": {**self.toolchain, "buildSystem": lint.BUILD_SYSTEM},
+                       "toolchain": {**self.toolchain, "buildSystem": lint.BUILD_SYSTEM, "swiftTarget": lint.swift_target()},
                        "dependencyPins": [self.pin], "reviewedSuppressions": []}
 
     def verdict(self, data, expected, status=0):
