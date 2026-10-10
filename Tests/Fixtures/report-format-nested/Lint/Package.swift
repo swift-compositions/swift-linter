@@ -6,7 +6,7 @@ let package = Package(
   name: "report-format-nested-fixture",
   platforms: [.macOS(.v27)],
   dependencies: [
-    .package(path: "../../../..")
+    .package(name: "swift-linter", path: "../../../..")
   ],
   targets: [
     .executableTarget(

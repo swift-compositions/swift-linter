@@ -53,7 +53,10 @@ extension Lint.File.Single.Eval {
       }
       linterDependency = Package.Dependency(
         source: .path(rawPath),
-        name: "swift-linter",
+        name: Package.Name(
+          Lint.File.Single.Extractor.name(at: rawPath, consumerPackageRoot: consumerPackageRoot)
+            .lowercased()
+        ),
         products: ["Linter"]
       )
     } else {
@@ -181,7 +184,7 @@ extension Lint.File.Single.Eval {
       ),
       Manifest.Dependency(
         path: linterPath,
-        name: "swift-linter",
+        name: linter.components.last?.string.lowercased() ?? "swift-linter",
         product: "Linter",
         imports: ["Linter"]
       ),
