@@ -93,7 +93,7 @@ Integration tests preserve fixtures and output under `.local-linter/integration-
 
 `test` uses a separate private SwiftPM scratch tree, binds the configured local dependencies, builds the process-test executables, and runs the package's complete test suite. It preserves the resolved graph, source identity, and full output in the run evidence. Exit 0 means tests passed; exit 3 means resolution, build, or tests failed.
 
-Some existing engine process tests resolve and build their own nested fixture packages from GitHub. These tests need network access and additional disk space/time, including possible fetches on later runs. All 149 engine tests passed on a cold run, but a repeat run failed two nested-fixture tests when Swift 6.4’s build backend mixed dependency deployment targets. The command reports exit 3; the full engine suite is therefore not reliably green in this environment. Ordinary package/rule checks use the local runner directly and passed repeated edit/rebuild verification.
+Some engine process tests build nested fixture packages against this local engine and resolve their transitive dependencies. These tests need network access and additional disk space/time, including possible fetches on later runs. Both SwiftBuild and native builds passed all 149 tests cold, but repeat runs failed because the SDK and ecosystem both expose a module named `System`; Crypto then resolves the wrong module. The command reports exit 3. The full engine suite is not yet reliably green in this environment. The current local runner uses the native backend explicitly (deprecated by SwiftPM); it is a recorded build profile, not a complete fix for the module collision.
 
 The Xcode workspace's package resolution and executable build are verified. The SwiftPM rule suite above is the passing regression route. Xcode-native test/fixture builds also encounter upstream deployment-target and module/linker conflicts in this dependency graph. These failures are recorded in `LOCAL-LINTER-VERIFICATION.md`; no tests are skipped to conceal them.
 
@@ -147,3 +147,18 @@ review failures; **2** means incomplete measurement or a rule-inventory mismatch
 **3** means setup, build, toolchain, source-pin, or dependency-pin failure; **64**
 means invalid arguments or policy. Only exit 0 passes the gate. `report` remains
 an evidence command whose exit 0 does not establish cleanliness.
+
+Exercise the full-policy contract against the reference package in an isolated
+clone (all generated files and commands are retained in the output directory):
+
+```sh
+python3 scripts/tests/policy_integration.py --linter . \
+  --config /path/to/local-config.json --policy /path/to/swift-effects/compliance-policy.json \
+  --package /path/to/swift-effects --output .local-linter
+```
+
+This reference-specific test checks the package edit/fix cycle, malformed Swift
+source, paths containing spaces, suppression context changes, incomplete rule
+inventories, wrong tool revisions, invalid policies, and setup failure. It uses
+the package's existing reviewed suppression as a mutation fixture; it does not
+add a suppression or weaken any rule.
