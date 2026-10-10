@@ -197,3 +197,56 @@ module is already present. The profile, source revisions, actual commands, and
 subprocess trace are retained as evidence. It does not rename the ecosystem or
 SDK modules. Validate the complete cold/repeat engine suite when changing this
 profile or toolchain; passing an individual nested fixture is insufficient.
+
+## Ecosystem debt audit
+
+After verifying a reference package with a pinned full policy, measure the other
+checkouts with the same engine, rules, toolchain and resolved tool dependencies:
+
+```sh
+./scripts/ecosystem-audit /path/to/swift-institute \
+  --policy /path/to/swift-effects/compliance-policy.json \
+  --output /path/to/new-audit
+```
+
+Use `--config` for an explicit local tool configuration. The output directory
+must be new and should be outside the source workspace. The audit snapshots
+working-tree files, including dirty edits and ignored Swift sources, before
+measurement. It preserves the originals and keeps per-package raw reports,
+diagnostics, source hashes, a tool receipt, and a summary checkpoint. It does
+not change packages or publish anything. Each run measures again; checkpoints
+are evidence, not a cache of verdicts.
+
+`scripts/ecosystem-bundles.json` explicitly assigns `primitives` to atoms and
+molecules, `standards` to standards packages, and `institute` to compositions,
+shims and the other listed groups. Override with `--mapping` when reviewing a
+different layout. Missing mappings are unmeasured. Declared dependency edges
+order dependencies before consumers and group cycles; they are **not** a
+resolved SwiftPM graph. Relative local package layouts are retained in snapshots,
+but manifests that require Git metadata or files outside the inventoried packages
+may fail to measure. Such failures remain visible, never clean.
+
+The summary separates **lint-clean**, **measured-debt**, and **unmeasured**.
+Every finding and suppression counts as debt here, including the reference
+package's individually reviewed suppression. This audit does not establish build,
+test, API, or runtime correctness. Those require package-specific verification.
+
+After reviewing and retaining a complete audit, compare a new run explicitly:
+
+```sh
+./scripts/ecosystem-audit /path/to/swift-institute \
+  --policy /path/to/swift-effects/compliance-policy.json \
+  --baseline /path/to/reviewed-audit/summary.json \
+  --output /path/to/new-comparison
+```
+
+A comparison fails for new/increased finding or suppression signatures, added or
+removed packages, and any incomplete measurement. Signatures include rule,
+file, diagnostic message and the source line plus its neighbors; duplicate
+counts are retained. Moving unchanged context preserves its signature, while
+editing context requires review. This is a textual debt comparison, not proof
+of semantic equivalence. Changes to policy, mapping or auditor require a newly
+reviewed baseline. **Baseline preserved does not mean compliant.** Exit codes
+are 0 for the stated verdict, 1 for debt/regression, 2 for unmeasured, 3 for tool
+setup failure and 64 for usage. An interrupted run retains an incomplete summary
+and exits 2. `--timeout` bounds each package (300 seconds by default).

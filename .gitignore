@@ -39,3 +39,5 @@
 
 !/scripts/ecosystem-inventory
 !/scripts/swift-native
+!/scripts/ecosystem-audit
+!/scripts/ecosystem-bundles.json

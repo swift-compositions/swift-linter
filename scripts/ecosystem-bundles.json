@@ -1,0 +1,9 @@
+{
+  "swift-atoms": "primitives",
+  "swift-molecules": "primitives",
+  "swift-standards": "standards",
+  "swift-compositions": "institute",
+  "swift-shims": "institute",
+  "swift-institute.org": "institute",
+  "issues": "institute"
+}

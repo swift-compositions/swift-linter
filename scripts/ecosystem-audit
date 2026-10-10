@@ -1,0 +1,304 @@
+#!/usr/bin/env python3
+"""Measure isolated Swift-source snapshots in declared dependency order.
+
+This records lint debt, not build/test certification. A baseline can prevent
+increases in measured debt; it can never excuse incomplete measurement.
+"""
+import argparse
+from collections import Counter
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import os
+from pathlib import Path
+import signal
+import shutil
+import subprocess
+import sys
+import uuid
+
+REPO = Path(__file__).resolve().parents[1]
+
+
+def module(name, path):
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(name, loader)
+    loaded = importlib.util.module_from_spec(spec)
+    loader.exec_module(loaded)
+    return loaded
+
+
+lint = module('audit_lint', REPO / 'scripts/lint-local')
+source_inventory = module('audit_inventory', REPO / 'scripts/ecosystem-inventory')
+
+
+def digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+
+
+def groups(packages):
+    """Tarjan SCCs, with dependencies emitted before their consumers."""
+    graph = {p['path']: p['localDependencies'] for p in packages}
+    indexes, low, stack, active, result = {}, {}, [], set(), []
+
+    def visit(node):
+        indexes[node] = low[node] = len(indexes)
+        stack.append(node)
+        active.add(node)
+        for dependency in sorted(graph[node]):
+            if dependency not in graph:
+                continue
+            if dependency not in indexes:
+                visit(dependency)
+                low[node] = min(low[node], low[dependency])
+            elif dependency in active:
+                low[node] = min(low[node], indexes[dependency])
+        if low[node] == indexes[node]:
+            group = []
+            while True:
+                member = stack.pop()
+                active.remove(member)
+                group.append(member)
+                if member == node:
+                    break
+            result.append(sorted(group))
+
+    for node in sorted(graph):
+        if node not in indexes:
+            visit(node)
+    return result
+
+
+def bundle_for(path, mapping):
+    matches = [key for key in mapping if path == key or path.startswith(key + '/')]
+    return mapping[max(matches, key=len)] if matches else None
+
+
+def signatures(report, snapshot):
+    counts = Counter()
+    for kind in ('findings', 'suppressions'):
+        for finding in report[kind]:
+            relative = str(Path(finding['fileID']))
+            path = (snapshot / relative).resolve()
+            if not path.is_relative_to(snapshot.resolve()):
+                raise lint.Failure('diagnostic path escapes the source snapshot', 2)
+            lines = path.read_text(errors='replace').splitlines()
+            line = finding['line'] - 1
+            context = [s.strip() for s in lines[max(0, line - 1):line + 2]]
+            signature = digest([kind, finding['rule'], relative, finding['message'], context])
+            counts[signature] += 1
+    return dict(counts)
+
+
+def regression(current, baseline):
+    if current['exitCode'] == 2:
+        return 2
+    if baseline is None or baseline['exitCode'] == 2:
+        return 1  # New packages require baseline review, even when lint-clean.
+    old = baseline.get('debt', {})
+    return 1 if any(count > old.get(key, 0) for key, count in current['debt'].items()) else 0
+
+
+def load_baseline(path, metadata):
+    value = json.loads(path.read_text())
+    if not isinstance(value, dict) or value.get('metadata') != metadata:
+        raise lint.Failure('baseline uses different tools, policy, mapping, or auditor; review a new baseline', 3)
+    packages = value.get('packages')
+    if value.get('complete') is not True or not isinstance(packages, list) or not packages or value.get('expectedPackages') != len(packages):
+        raise lint.Failure('baseline must contain a complete nonempty audit', 3)
+    seen = set()
+    for item in packages:
+        path = item.get('path')
+        debt = item.get('debt')
+        if not isinstance(path, str) or path in seen or item.get('exitCode') not in (0, 1, 2) or not isinstance(debt, dict):
+            raise lint.Failure('baseline contains invalid or duplicate package results', 3)
+        if any(not isinstance(key, str) or len(key) != 64 or type(count) is not int or count <= 0 for key, count in debt.items()):
+            raise lint.Failure('baseline contains invalid debt counts', 3)
+        if item['exitCode'] == 0 and debt:
+            raise lint.Failure('baseline claims clean with recorded debt', 3)
+        seen.add(path)
+    return value
+
+
+def run_runner(binary, snapshot, bundle, evidence, timeout):
+    with (evidence / 'report.json').open('w') as out, (evidence / 'runner.stderr').open('w') as err:
+        process = subprocess.Popen([str(binary), '.'], cwd=snapshot,
+            env=lint.runner_environment(bundle), stdout=out, stderr=err, start_new_session=True)
+        try:
+            return process.wait(timeout=timeout)
+        except (subprocess.TimeoutExpired, KeyboardInterrupt) as error:
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+            if isinstance(error, KeyboardInterrupt):
+                raise
+            raise lint.Failure(f'measurement exceeded {timeout} seconds', 2)
+
+
+def snapshot_inputs(original, snapshot):
+    before = lint.package_snapshot(original)
+    raw = subprocess.check_output(['git', '-C', str(original), 'ls-files',
+                                   '--cached', '--others', '--exclude-standard', '-z'])
+    files = {os.fsdecode(value) for value in raw.split(b'\0') if value}
+    files.update(before['sourceFiles'])
+    excluded = {'.git', '.build', '.swiftpm', '.local-linter', '.benchmarks',
+                'DerivedData', 'Carthage', 'Pods', 'node_modules', 'EVIDENCE'}
+    snapshot.mkdir(parents=True)
+    for relative in sorted(files):
+        if Path(relative).is_absolute() or '..' in Path(relative).parts:
+            raise lint.Failure('tracked path escapes the package', 2)
+        if excluded.intersection(Path(relative).parts):
+            continue
+        source = original / relative
+        if source.is_file():
+            destination = snapshot / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+    before['inputFilesSHA256'] = {str(file.relative_to(snapshot)): hashlib.sha256(file.read_bytes()).hexdigest()
+                                  for file in sorted(snapshot.rglob('*')) if file.is_file()}
+    copied = lint.package_snapshot(snapshot)
+    current = lint.package_snapshot(original)
+    if copied['sourceSnapshot'] != before['sourceSnapshot'] or any(current[key] != before[key] for key in current):
+        raise lint.Failure('package changed while its input snapshot was copied', 2)
+    return before
+
+
+def measure(package, before, snapshot, bundle, binary, known, output, timeout):
+    evidence = output / 'packages' / (digest(package['path'])[:12] + '-' + uuid.uuid4().hex[:8])
+    evidence.mkdir(parents=True)
+    copied = lint.package_snapshot(snapshot)
+    result = {'path': package['path'], 'bundle': bundle, 'original': before,
+              'evidence': str(evidence.relative_to(output)), 'snapshot': str(snapshot.relative_to(output)), 'debt': {}, 'exitCode': 2,
+              'status': 'unmeasured'}
+    try:
+        status = run_runner(binary, snapshot, bundle, evidence, timeout)
+        report = json.loads((evidence / 'report.json').read_text())
+        lint.validate_report(report, known, before['sourceFiles'])
+        if lint.package_snapshot(snapshot)['sourceSnapshot'] != copied['sourceSnapshot']:
+            raise lint.Failure('source snapshot changed during measurement', 2)
+        with (evidence / 'diagnostics.txt').open('w') as stream:
+            import contextlib
+            with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
+                code = lint.verdict(report, known, status)
+        if code == 0 and report['suppressions']:
+            code = 1  # An ecosystem baseline never silently approves a suppression.
+        result.update(exitCode=code, runnerExitCode=status, summary=report['summary'],
+                      debt=signatures(report, snapshot),
+                      status={0: 'lint-clean', 1: 'measured-debt', 2: 'unmeasured'}[code])
+    except (lint.Failure, OSError, ValueError, KeyError, TypeError) as error:
+        result['error'] = str(error)
+    lint.save(evidence / 'receipt.json', result)
+    return result
+
+
+def main(argv=None):
+    parser = lint.Parser(description=__doc__)
+    parser.add_argument('root', type=Path)
+    parser.add_argument('--config', type=Path, default=lint.LOCAL / 'config.json')
+    parser.add_argument('--policy', type=Path, required=True, help='pinned reference tool policy')
+    parser.add_argument('--mapping', type=Path, default=REPO / 'scripts/ecosystem-bundles.json')
+    parser.add_argument('--output', type=Path, required=True, help='new evidence directory')
+    parser.add_argument('--baseline', type=Path, help='reviewed prior summary.json; incomplete results still fail')
+    parser.add_argument('--timeout', type=int, default=300, help='seconds per package, default 300')
+    args = parser.parse_args(argv)
+    root, output = args.root.expanduser().resolve(), args.output.expanduser().resolve()
+    if not root.is_dir() or args.timeout <= 0:
+        raise lint.Failure('root must exist and --timeout must be positive', 64)
+    policy = lint.load_policy(args.policy.expanduser().resolve())
+    mapping = json.loads(args.mapping.read_text())
+    if not isinstance(mapping, dict) or not mapping or any(
+        not key or Path(key).is_absolute() or '..' in Path(key).parts or
+        value not in ('institute', 'primitives', 'standards') for key, value in mapping.items()
+    ):
+        raise lint.Failure('invalid directory-to-bundle mapping', 64)
+    if output.exists():
+        raise lint.Failure('output exists; choose a new evidence directory (prior results are preserved)', 64)
+    output.mkdir(parents=True, exist_ok=True)
+    metadata = {'schema': 1, 'kind': 'isolated-input-lint-audit', 'policySHA256': digest(policy),
+                'mappingSHA256': digest(mapping), 'auditorSHA256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+    baseline = load_baseline(args.baseline, metadata) if args.baseline else None
+    with lint.locked():
+        toolchain = lint.prerequisites()
+        config_args = argparse.Namespace(config=args.config, command='check')
+        paths = lint.configure(config_args, output / 'build.log')
+        lint.verify_policy_tools(policy, {name: lint.identity(path) for name, path in paths.items()}, toolchain)
+        binary, sources, state = lint.build(paths, output / 'build.log')
+        known = lint.inventory(binary)
+        lint.verify_policy_tools(policy, sources, toolchain)
+        lint.verify_policy_inventory(policy, known[policy['bundle']], json.loads((state / 'Package.resolved').read_text()))
+        lint.save(output / 'tool-receipt.json', {'sources': sources, 'toolchain': toolchain,
+            'buildSystem': lint.BUILD_SYSTEM, 'swiftTarget': lint.swift_target(), 'binarySHA256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+            'inventories': known, 'command': sys.argv})
+        lint.write(output / 'Package.resolved', (state / 'Package.resolved').read_text())
+        source = source_inventory.inventory(root)
+        lint.save(output / ('inventory-' + uuid.uuid4().hex[:8] + '.json'), source)
+        by_path = {p['path']: p for p in source['packages']}
+        ordered = groups(source['packages'])
+        staged, staging_errors = {}, {}
+        snapshot_root = output / 'snapshots' / uuid.uuid4().hex[:8]
+        for package in source['packages']:
+            relative = package['path']
+            original = (root / relative).resolve()
+            try:
+                if not original.is_relative_to(root):
+                    raise lint.Failure('package path escapes workspace', 2)
+                staged[relative] = snapshot_inputs(original, snapshot_root / relative)
+            except (lint.Failure, OSError, ValueError, KeyError, TypeError) as error:
+                staging_errors[relative] = str(error)
+        workspace_snapshot = digest({path: value for path, value in staged.items()})
+        summary = {'metadata': metadata, 'root': str(root), 'dependencyGroups': ordered,
+                   'packages': [], 'complete': False, 'expectedPackages': len(by_path), 'workspaceSnapshot': workspace_snapshot}
+        lint.save(output / 'summary.json', summary)
+        for group in ordered:
+            for path in group:
+                bundle = bundle_for(path, mapping)
+                try:
+                    if path in staging_errors:
+                        raise lint.Failure(staging_errors[path], 2)
+                    if bundle is None:
+                        raise lint.Failure('no explicit bundle mapping for this package', 2)
+                    result = measure(by_path[path], staged[path], snapshot_root / path, bundle, binary, known[bundle], output, args.timeout)
+                except (lint.Failure, OSError, ValueError, KeyError, TypeError) as error:
+                    result = {'path': path, 'bundle': bundle, 'exitCode': 2, 'status': 'unmeasured', 'error': str(error), 'debt': {}}
+                summary['packages'].append(result)
+                lint.save(output / 'summary.json', summary)
+                detail = result.get('summary', {})
+                print(f"{len(summary['packages'])}/{len(by_path)} {result['status']}: {path} "
+                      f"({detail.get('findings', '?')} findings, {detail.get('suppressions', '?')} suppressions)", flush=True)
+        if sources != {name: lint.identity(path) for name, path in paths.items()}:
+            raise lint.Failure('tool sources changed during the audit; evidence is incomplete', 2)
+        summary['complete'] = True
+        codes = [p['exitCode'] for p in summary['packages']]
+        if baseline:
+            old = {p['path']: p for p in baseline['packages']}
+            codes = [regression(p, old.get(p['path'])) for p in summary['packages']]
+            removed = sorted(set(old) - set(by_path))
+            summary['removedPackages'] = removed
+            if removed:
+                codes.append(1)
+        code = 2 if 2 in codes or not codes else 1 if 1 in codes else 0
+        summary['exitCode'] = code
+        summary['verdict'] = ('BASELINE PRESERVED (not compliance)' if baseline and code == 0 else
+                              'LINT-CLEAN (builds/tests not assessed)' if code == 0 else
+                              'UNMEASURED' if code == 2 else 'LINT DEBT OR BASELINE REGRESSION')
+        lint.save(output / 'summary.json', summary)
+        print(f"{summary['verdict']}; exit {code}; evidence: {output}")
+        return code
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print('ecosystem-audit: interrupted; partial evidence retained, exit 2', file=sys.stderr)
+        sys.exit(2)
+    except lint.Failure as error:
+        print(f'ecosystem-audit: {error}', file=sys.stderr)
+        sys.exit(error.code)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(f'ecosystem-audit: invalid setup/evidence: {error}', file=sys.stderr)
+        sys.exit(3)
