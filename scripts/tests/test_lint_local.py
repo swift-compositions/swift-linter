@@ -198,6 +198,17 @@ class WorkflowTests(unittest.TestCase):
             self.assertNotEqual(first["snapshot"], second["snapshot"])
             self.assertEqual(second["untracked"], 1)
 
+    def test_nested_git_checkout_is_fingerprinted_without_reading_a_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(["git", "-C", str(root), "commit", "--allow-empty", "-qm", "Fixture"], check=True)
+            child = root / "Nested"
+            subprocess.run(["git", "clone", "-q", str(root), str(child)], check=True)
+            before = lint.identity(root)
+            (child / "Rule.swift").write_text("let value = 1\n")
+            self.assertNotEqual(lint.identity(root)["snapshot"], before["snapshot"])
+
     def test_package_snapshot_ignores_builds_and_nested_packages(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

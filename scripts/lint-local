@@ -154,7 +154,13 @@ def identity(path):
     for raw in untracked:
         file = path / os.fsdecode(raw)
         digest.update(raw + b"\0")
-        digest.update(os.fsencode(os.readlink(file)) if file.is_symlink() else file.read_bytes())
+        if file.is_symlink():
+            digest.update(os.fsencode(os.readlink(file)))
+        elif file.is_dir():
+            # Git reports an untracked nested checkout as one directory entry.
+            digest.update(json.dumps(identity(file), sort_keys=True).encode())
+        else:
+            digest.update(file.read_bytes())
     return {"path": str(path), "revision": head, "snapshot": digest.hexdigest(),
             "changed": len(list(filter(None, git("diff", "HEAD", "--name-only", "-z").split(b"\0")))),
             "untracked": len(untracked)}
