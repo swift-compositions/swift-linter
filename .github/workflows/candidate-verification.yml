@@ -1,0 +1,121 @@
+name: candidate-verification
+
+# Hosted execution of the immutable new-rules candidate engine on fixed subjects.
+# Candidate: publish-ci-binaries run 37987669811 (main e621e3b0, institute rules
+# 4af2a169), artifact 11645155885 (ci-binaries-macos-arm64). It is read by its fixed
+# identities and never published; the rolling ci-binaries release is not touched.
+# Verdicts use .github/candidate-verification/candidate-check.py: 0 clean, 1 finding
+# of a selected rule, 2 unmeasured.
+
+permissions: {}
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/candidate-verification.yml
+      - .github/candidate-verification/**
+
+jobs:
+  verify:
+    runs-on: ${{ 'xcode-27' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    env:
+      XCODE_VERSION: "27.1"
+      CANDIDATE_RUN: "37987669811"
+      CANDIDATE_ARTIFACT: "11645155885"
+      CANDIDATE_ARTIFACT_DIGEST: "c4e997af2f21b0a21913f6da916be6a28bf4bede154283771bb88ea0ddfb7aa0"
+      CANDIDATE_BINARY_SHA256: "6fbadb1d054955e0c04007173fbdb7acccfd032e75d663046884bb7603c45ab5"
+      CANDIDATE_ENGINE: "e621e3b0c27db7597f990e000fcfa3a9b93c1b5c"
+      CANDIDATE_INSTITUTE_RULES: "4af2a1698b215cc14a662bdbba9496799db7fd85"
+      SPRINT_RULES: "do throws for typed catch,bare string dependency,existential parameter"
+    steps:
+      - name: Harden runner (audit-mode egress logging)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode ${{ env.XCODE_VERSION }}
+        run: sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+
+      - name: Download the candidate by its fixed identities
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          meta=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANDIDATE_ARTIFACT}")
+          test "$(jq -r .name <<< "$meta")" = "ci-binaries-macos-arm64"
+          test "$(jq -r .workflow_run.id <<< "$meta")" = "$CANDIDATE_RUN"
+          test "$(jq -r .digest <<< "$meta")" = "sha256:${CANDIDATE_ARTIFACT_DIGEST}"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANDIDATE_ARTIFACT}/zip" > "$RUNNER_TEMP/candidate.zip"
+          test "$(shasum -a 256 "$RUNNER_TEMP/candidate.zip" | cut -d' ' -f1)" = "$CANDIDATE_ARTIFACT_DIGEST"
+          mkdir -p "$RUNNER_TEMP/candidate"
+          unzip -q "$RUNNER_TEMP/candidate.zip" -d "$RUNNER_TEMP/candidate"
+
+      - name: Verify the candidate identity
+        working-directory: ${{ runner.temp }}/candidate
+        run: |
+          set -euo pipefail
+          test "$(shasum -a 256 swift-linter-macos-arm64 | cut -d' ' -f1)" = "$CANDIDATE_BINARY_SHA256"
+          shasum -a 256 -c SHA256SUMS-macos-arm64
+          grep -qx "${CANDIDATE_BINARY_SHA256}  swift-linter-macos-arm64" SHA256SUMS-macos-arm64
+          test "$(jq -r .engineRevision MANIFEST-macos-arm64.json)" = "$CANDIDATE_ENGINE"
+          test "$(jq -r '.packageRevisions["swift-institute-linter-rules"]' MANIFEST-macos-arm64.json)" = "$CANDIDATE_INSTITUTE_RULES"
+          chmod +x swift-linter-macos-arm64
+          echo "candidate verified: binary ${CANDIDATE_BINARY_SHA256}, engine ${CANDIDATE_ENGINE}, institute rules ${CANDIDATE_INSTITUTE_RULES}"
+
+      - name: Check out the subjects at exact revisions
+        run: |
+          set -euo pipefail
+          subjects="$RUNNER_TEMP/subjects"
+          fetch() {
+            git init -q "$subjects/$1"
+            git -C "$subjects/$1" fetch -q --depth 1 "https://github.com/$2.git" "$3"
+            git -C "$subjects/$1" checkout -q --detach FETCH_HEAD
+            test "$(git -C "$subjects/$1" rev-parse HEAD)" = "$3"
+          }
+          fetch effects-main swift-compositions/swift-effects be8bca90a7a0db8f74fe5f5ad498e44837d64810
+          fetch test-application-main swift-compositions/swift-test-application e832144994d016f78211f6f2d117ba2e0c3e8ae1
+          fetch example-cli swift-institute/swift-example-cli 0a9ea7838045e3703cab2ae90b0f5e47e9eb932e
+          fetch example-cli-unmeasurable swift-institute/swift-example-cli 0a9ea7838045e3703cab2ae90b0f5e47e9eb932e
+          git -C "$subjects/example-cli-unmeasurable" apply "$GITHUB_WORKSPACE/.github/candidate-verification/unmeasurable.patch"
+          fetch effects-frozen swift-compositions/swift-effects a92591d3a9290a1c722eef0229b85d91a02a4c2c
+          fetch coproduct swift-atoms/swift-coproduct 224eb87fa19b044ef3069a897544064e31b157ca
+
+      - name: Run the candidate on each subject
+        run: |
+          set -uo pipefail
+          out="$RUNNER_TEMP/candidate-verification"
+          mkdir -p "$out"
+          binary="$RUNNER_TEMP/candidate/swift-linter-macos-arm64"
+          check="$GITHUB_WORKSPACE/.github/candidate-verification/candidate-check.py"
+          failures=0
+          expect() {
+            got=0
+            python3 "$check" "$binary" "$RUNNER_TEMP/subjects/$1" "$2" "$out/$1" || got=$?
+            echo "$1: expected exit $3, got $got"
+            [ "$got" = "$3" ] || failures=$((failures + 1))
+          }
+          expect effects-main "$SPRINT_RULES" 0
+          expect test-application-main "$SPRINT_RULES" 0
+          expect example-cli "$SPRINT_RULES" 0
+          expect example-cli-unmeasurable "$SPRINT_RULES" 2
+          expect effects-frozen "existential parameter" 1
+          expect coproduct "existential parameter" 0
+          [ "$failures" -eq 0 ] || { echo "::error::$failures subject(s) did not give the expected exit"; exit 1; }
+
+      - name: Keep the per-subject outputs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: candidate-verification
+          path: ${{ runner.temp }}/candidate-verification
+          if-no-files-found: error
+          retention-days: 30
