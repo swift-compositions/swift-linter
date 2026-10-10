@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""Inventory package checkouts and declared repository dependencies without building.
+
+This is a source inventory, not a resolved SwiftPM dependency graph. Conditional
+and computed declarations still require SwiftPM resolution before migration.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+
+
+def git(path, *args):
+    return subprocess.check_output(['git', '-C', str(path), *args], text=True).strip()
+
+
+def inventory(root):
+    packages = []
+    for directory, dirs, files in os.walk(root):
+        dirs[:] = sorted(d for d in dirs if not d.startswith('.') and d not in ('node_modules', 'EVIDENCE'))
+        path = Path(directory)
+        if not (path / '.git').exists():
+            continue
+        dirs[:] = []
+        manifest = path / 'Package.swift'
+        if not manifest.is_file():
+            continue
+        source = manifest.read_text()
+        dependencies = sorted(set(re.findall(r'\.package\s*\([^)]*?\burl:\s*"([^"\n]+)"', source)))
+        try:
+            remote = git(path, 'remote', 'get-url', 'origin')
+        except subprocess.CalledProcessError:
+            remote = None
+        packages.append({'path': str(path.relative_to(root)), 'revision': git(path, 'rev-parse', 'HEAD'),
+                         'remote': remote, 'status': git(path, 'status', '--porcelain'),
+                         'manifestSHA256': hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                         'declaredDependencyURLs': dependencies})
+    def key(url):
+        return url.removesuffix('.git').rstrip('/').lower() if url else None
+    local = {key(p['remote']): p['path'] for p in packages if p['remote']}
+    for package in packages:
+        package['localDependencies'] = sorted({local[key(u)] for u in package['declaredDependencyURLs'] if key(u) in local})
+        package['unmatchedDependencyURLs'] = [u for u in package['declaredDependencyURLs'] if key(u) not in local]
+    return {'schema': 1, 'kind': 'declared-source-inventory', 'root': str(root), 'packages': sorted(packages, key=lambda p: p['path'])}
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('root', type=Path, help='directory containing package checkouts (read only)')
+    args = parser.parse_args()
+    root = args.root.expanduser().resolve()
+    if not root.is_dir():
+        parser.error('root must be an existing directory')
+    print(json.dumps(inventory(root), indent=2))

@@ -36,3 +36,5 @@
 !/LOCAL-LINTER-VERIFICATION.md
 **/.swift-manifest/
 **/.build/
+
+!/scripts/ecosystem-inventory

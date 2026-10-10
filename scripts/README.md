@@ -96,3 +96,11 @@ Integration tests preserve fixtures and output under `.local-linter/integration-
 Some existing engine process tests resolve and build their own nested fixture packages from GitHub. These tests need network access and additional disk space/time, including possible fetches on later runs. All 149 engine tests passed on a cold run, but a repeat run failed two nested-fixture tests when Swift 6.4’s build backend mixed dependency deployment targets. The command reports exit 3; the full engine suite is therefore not reliably green in this environment. Ordinary package/rule checks use the local runner directly and passed repeated edit/rebuild verification.
 
 The Xcode workspace's package resolution and executable build are verified. The SwiftPM rule suite above is the passing regression route. Xcode-native test/fixture builds also encounter upstream deployment-target and module/linker conflicts in this dependency graph. These failures are recorded in `LOCAL-LINTER-VERIFICATION.md`; no tests are skipped to conceal them.
+
+## Ecosystem source inventory
+
+```sh
+./scripts/ecosystem-inventory /path/to/swift-institute > ecosystem-inventory.json
+```
+
+This read-only command records package checkout paths, Git revisions, working-tree status, manifest hashes, literal dependency URLs, and matching local dependency edges. It does not descend into a repository's build caches. The result is a starting point for dependency-ordered verification, **not** a resolved SwiftPM graph or a compliance verdict: computed/conditional manifest declarations still require resolution. Preserve dirty checkouts and perform migrations in isolated clones.
