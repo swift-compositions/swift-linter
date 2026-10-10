@@ -117,6 +117,7 @@ extension Lint.Rule {
 extension Lint.Run.Test.Integration {
 
   private static func fixtureRoot(
+    name: Swift.String = "path-filter-fixture",
     testFile: Swift.String = #filePath
   ) throws(Paths.Path.Error) -> File.Path {
 
@@ -127,8 +128,23 @@ extension Lint.Run.Test.Integration {
     _ = components.popLast()
     _ = components.popLast()
     components.append("Fixtures")
-    components.append("path-filter-fixture")
+    components.append(name)
     return try File.Path(components.joined(separator: "/"))
+  }
+
+  @Test
+  func `malformed source remains unmeasured despite recovered AST findings`() throws {
+    let configuration = Lint.Configuration { .enable(.`test fixture`) }
+    let outcome = try Lint.Run.run(
+      paths: [try Self.fixtureRoot(name: "malformed-source-fixture")],
+      capturing: .all,
+      configuration: configuration
+    )
+    #expect(outcome.files.count == 1)
+    #expect(outcome.observations.count == 1)
+    #expect(outcome.summary.unmeasured == 1)
+    #expect(outcome.findings.count == 1)
+    #expect(outcome.repairs.isEmpty)
   }
 
   @Test

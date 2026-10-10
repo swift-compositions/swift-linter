@@ -56,11 +56,13 @@ extension Lint.Run {
             Observation(
               file: filePath,
               rule: entry.rule.id,
-              coverage: observation.coverage,
+              coverage: parsed.tree.hasError
+                ? .unmeasured(.unsupportedSourceShape("Swift source does not parse; fix syntax errors before linting"))
+                : observation.coverage,
               applicability: observation.applicability
             )
           )
-          if !observation.findings.isEmpty {
+          if !parsed.tree.hasError && !observation.findings.isEmpty {
             repairs.append(
               Repair.Proposal(
                 file: filePath,
@@ -259,7 +261,7 @@ extension Lint.Run {
         }
         guard let text = Swift.String(validating: bytes, as: UTF8.self) else { continue }
         let tree = Parser.parse(source: text)
-        names.formUnion(Lint.Brand.types(in: tree))
+        if !tree.hasError { names.formUnion(Lint.Brand.types(in: tree)) }
       }
     }
     return names
