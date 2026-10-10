@@ -124,6 +124,42 @@ class VerdictTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
+    def setup_race(self, changed_file):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            for relative in ("Package.swift", "accepted-graph.json", "Sources/runner/main.swift"):
+                lint.write(root / "Runner" / relative, "old")
+            paths = {n: root / n for n in lint.NAMES}
+            built = []
+            def command(args, **kwargs):
+                if "resolve" in args:
+                    lint.write(root / "Runner" / changed_file, "new")
+                if args[1] == "build":
+                    state = Path(args[args.index("--package-path") + 1])
+                    built.append((state / "Sources/runner/main.swift").read_text())
+                    lint.write(state / ".build/debug/runner", "binary")
+                return ""
+            with patch.object(lint, "REPO", root), patch.object(lint, "LOCAL", root / "state"), \
+                 patch.object(lint, "run", side_effect=command), \
+                 patch.object(lint, "identity", return_value={"snapshot": "stable-after-resolve"}), \
+                 patch.object(lint, "bindings", return_value={n: str(p) for n, p in paths.items()}), \
+                 contextlib.redirect_stderr(io.StringIO()):
+                if changed_file == "Package.swift":
+                    with self.assertRaises(lint.Failure) as error:
+                        lint.build(paths, root / "log")
+                    self.assertEqual(error.exception.code, 3)
+                    self.assertIn("Runner dependency inputs", str(error.exception))
+                    self.assertFalse(built)
+                else:
+                    lint.build(paths, root / "log")
+                    self.assertEqual(built, ["new"])
+
+    def test_entrypoint_edit_during_resolution_is_built(self):
+        self.setup_race("Sources/runner/main.swift")
+
+    def test_dependency_edit_during_resolution_requires_new_resolve(self):
+        self.setup_race("Package.swift")
+
     def test_help_is_success_and_invalid_cli_is_usage(self):
         for args, code in [(["--help"], 0), (["check", "--help"], 0), ([], 64),
                            (["check", ".", "--rules", ""], 64),

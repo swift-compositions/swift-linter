@@ -52,6 +52,8 @@ def arguments(argv):
         if mode == "check":
             s.add_argument("--rules", default=DEFAULT_RULES, help="comma-separated rule IDs (default: %(default)s)")
     sub.add_parser("rules", help="build local sources and list rule IDs in each bundle")
+    tests = sub.add_parser("test", help="run SwiftPM regression tests with the configured local sources")
+    tests.add_argument("--package", choices=("swift-linter", "swift-institute-linter-rules"), default="swift-linter")
     args = p.parse_args(argv)
     if args.command == "check":
         args.rules = [r.strip() for r in args.rules.split(",")]
@@ -186,6 +188,11 @@ def build(paths, log):
         if not have or Path(have).resolve() != paths[name]:
             raise Failure(f"wrong local binding for {name}: {have}; expected {paths[name]}. See {state}")
     before = {n: identity(paths[n]) for n in NAMES}
+    if inputs != [(REPO / "Runner" / p).read_bytes() for p in ("Package.swift", "accepted-graph.json")]:
+        raise Failure("Runner dependency inputs changed during setup; rerun to resolve the new graph")
+    # Resolution can take minutes. Copy the current entry point inside the source
+    # snapshot window, so an edit during resolution cannot label an old copy as new.
+    write(state / "Sources/runner/main.swift", (REPO / "Runner/Sources/runner/main.swift").read_text())
     print(f"Building local sources; log: {log}", file=sys.stderr)
     run(swift("build", "--product", "runner"), log=log)
     after = {n: identity(paths[n]) for n in NAMES}
@@ -207,6 +214,45 @@ def workspace(paths):
     path = LOCAL / "Linter.xcworkspace"
     write(path / "contents.xcworkspacedata", ET.tostring(root, encoding="unicode") + "\n")
     return path
+
+
+def test_sources(paths, package, evidence, toolchain):
+    """Use SwiftPM's native test route, with a private scratch tree and verified edits."""
+    key = hashlib.sha256(json.dumps({n: str(p) for n, p in paths.items()}, sort_keys=True).encode()).hexdigest()[:12]
+    # Keep compiler-generated Swift files under .build, which the source walker excludes.
+    scratch = LOCAL / "test-builds" / (package + "-" + key) / ".build"
+    target = paths[package]
+    log = evidence / "tests.log"
+    def swift(verb, *args):
+        return ["swift", verb, "--package-path", str(target), "--scratch-path", str(scratch),
+                "--cache-path", str(LOCAL / "cache"), "--config-path", str(LOCAL / "swiftpm-config"),
+                "--manifest-cache", "local", *args]
+    print(f"Resolving regression tests for {package}; log: {log}", file=sys.stderr)
+    run(swift("package", "resolve", "--skip-update"), log=log)
+    def dependencies():
+        return {d["packageRef"]["identity"]: d["state"] for d in
+                json.loads((scratch / "workspace-state.json").read_text())["object"]["dependencies"]}
+    local = {n: p for n, p in paths.items() if n != package and n in dependencies()}
+    for name, path in local.items():
+        current = dependencies()[name]
+        if current["name"] != "edited":
+            run(swift("package", "edit", name, "--path", str(path)), log=log)
+        if dependencies()[name].get("path") != str(path):
+            raise Failure(f"test dependency {name} is not bound to {path}")
+    before = {n: identity(p) for n, p in paths.items()}
+    receipt = {"toolchain": toolchain, "sources": before, "testPackage": package,
+               "localTestDependencies": {n: str(p) for n, p in local.items()}, "command": swift("test")}
+    save(evidence / "receipt.json", receipt)
+    run(swift("test"), log=log)
+    if before != {n: identity(p) for n, p in paths.items()}:
+        raise Failure("local sources changed during tests; rerun")
+    if any(dependencies()[n].get("path") != str(p) for n, p in local.items()):
+        raise Failure("local dependency bindings changed during tests; rerun")
+    write(evidence / "Package.resolved", (target / "Package.resolved").read_text())
+    receipt["exitCode"] = 0
+    save(evidence / "receipt.json", receipt)
+    print(f"Tests passed for {package}. Log: {log}")
+    return 0
 
 
 def runner_environment(bundle):
@@ -349,6 +395,8 @@ def main(argv=None):
         print(f"Run evidence: {evidence}", file=sys.stderr)
         toolchain = prerequisites()
         paths = configure(args, evidence / "build.log")
+        if args.command == "test":
+            return test_sources(paths, args.package, evidence, toolchain)
         binary, sources, state = build(paths, evidence / "build.log")
         ws = workspace(paths)
         inv = inventory(binary)

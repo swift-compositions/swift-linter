@@ -34,3 +34,4 @@
 !/scripts/tests/**
 /scripts/**/__pycache__/
 !/LOCAL-LINTER-VERIFICATION.md
+**/.swift-manifest/

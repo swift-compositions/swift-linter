@@ -78,10 +78,16 @@ Open `.local-linter/Linter.xcworkspace` in Xcode, so all six local packages part
 xcodebuild -workspace .local-linter/Linter.xcworkspace -list
 xcodebuild -workspace .local-linter/Linter.xcworkspace -scheme swift-linter -resolvePackageDependencies
 xcodebuild -workspace .local-linter/Linter.xcworkspace -scheme swift-linter -destination 'platform=macOS' -derivedDataPath .local-linter/DerivedData build
-xcodebuild -workspace .local-linter/Linter.xcworkspace -scheme 'Linter Core Tests' -destination 'platform=macOS' -derivedDataPath .local-linter/DerivedData test
+# Run the engine and rule regressions through SwiftPM with verified local bindings.
+./scripts/lint-local test
+./scripts/lint-local test --package swift-institute-linter-rules
 python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 # Real package/rule edit loop; use an otherwise idle disposable development clone.
 python3 scripts/tests/integration.py
 ```
 
 Integration tests preserve fixtures and output under `.local-linter/integration-*`. They temporarily inject a compiler error and then append a marker to one diagnostic message, restore the original bytes even on failure, and verify the rebuilt runner after restoration. They never weaken a rule or erase build state.
+
+`test` uses a separate private SwiftPM scratch tree, binds the configured local dependencies, builds the process-test executables, and runs the package's complete test suite. It preserves the resolved graph, source identity, and full output in the run evidence. Exit 0 means tests passed; exit 3 means resolution, build, or tests failed.
+
+The Xcode workspace's package resolution and executable build are supported. Use the SwiftPM commands above for regression tests: Xcode-native test/fixture builds currently encounter upstream deployment-target and module/linker conflicts in this dependency graph. These failures are recorded in `LOCAL-LINTER-VERIFICATION.md`; no tests are skipped to conceal them.
