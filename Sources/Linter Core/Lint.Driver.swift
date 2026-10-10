@@ -114,7 +114,7 @@ extension Lint.Driver {
       ),
       Manifest::Manifest.Dependency(
         path: linterPath,
-        name: "swift-linter",
+        name: linter.components.last?.string.lowercased() ?? "swift-linter",
         product: "Linter",
         imports: ["Linter"]
       ),
