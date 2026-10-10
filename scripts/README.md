@@ -45,6 +45,8 @@ Edit rules under `.local-linter/checkouts/swift-institute-linter-rules/Sources/`
 
 Incomplete measurement takes precedence over violations. Clean applies only to the selected rules, not compilation, all rules, or absence of suppressions. Existing source suppressions are honored and their count is printed; the raw report retains them. Run your package's build and tests separately.
 
+Diagnostic paths beginning with `./` are relative to the checked package, whose absolute path is printed in the banner.
+
 Each run prints the exact engine/rule paths, Git revisions, changed/untracked counts, content fingerprints, package path and Swift-source fingerprint, bundle and selected rules. Unique `.local-linter/runs/<id>/` directories retain the build log, raw structured report, runner stderr, resolved dependency graph, and receipt with toolchain, binary identity, and package Git identity when it is a checkout root. Reports are never reused as new measurements. Concurrent commands in one tool checkout fail with an actionable message; independent checkouts can run separately. Ambient `SWIFT_LINTER_*` variables are cleared so they cannot silently change selection or policy.
 
 ## Checkout locations
@@ -71,16 +73,17 @@ Relative config paths resolve from the config file's directory. Missing rule che
 
 ## Xcode and verification
 
-Open `.local-linter/Linter.xcworkspace` in Xcode, so all six local packages participate. The workspace contains editable sources; the CLI's generated Runner owns its separate SwiftPM build state. Use an explicit scheme for command-line resolution, build, and tests (commands below are verified in `LOCAL-LINTER-VERIFICATION.md`).
+Open `.local-linter/Linter.xcworkspace` in Xcode, so all six local packages participate. The workspace contains editable sources; the CLI's generated Runner owns its separate SwiftPM build state. Use an explicit scheme for command-line resolution and build. Outcomes, including test limitations, are recorded in `LOCAL-LINTER-VERIFICATION.md`.
 
 ```sh
 # Initialize package scheme discovery on the first opening of this workspace.
 xcodebuild -workspace .local-linter/Linter.xcworkspace -list
 xcodebuild -workspace .local-linter/Linter.xcworkspace -scheme swift-linter -resolvePackageDependencies
 xcodebuild -workspace .local-linter/Linter.xcworkspace -scheme swift-linter -destination 'platform=macOS' -derivedDataPath .local-linter/DerivedData build
-# Run the engine and rule regressions through SwiftPM with verified local bindings.
-./scripts/lint-local test
+# Rule regressions through SwiftPM with verified local bindings (1,938 passed).
 ./scripts/lint-local test --package swift-institute-linter-rules
+# Full engine suite; known nested-fixture build failures on repeat runs (see below).
+./scripts/lint-local test
 python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 # Real package/rule edit loop; use an otherwise idle disposable development clone.
 python3 scripts/tests/integration.py
@@ -90,4 +93,6 @@ Integration tests preserve fixtures and output under `.local-linter/integration-
 
 `test` uses a separate private SwiftPM scratch tree, binds the configured local dependencies, builds the process-test executables, and runs the package's complete test suite. It preserves the resolved graph, source identity, and full output in the run evidence. Exit 0 means tests passed; exit 3 means resolution, build, or tests failed.
 
-The Xcode workspace's package resolution and executable build are supported. Use the SwiftPM commands above for regression tests: Xcode-native test/fixture builds currently encounter upstream deployment-target and module/linker conflicts in this dependency graph. These failures are recorded in `LOCAL-LINTER-VERIFICATION.md`; no tests are skipped to conceal them.
+Some existing engine process tests resolve and build their own nested fixture packages from GitHub. These tests need network access and additional disk space/time, including possible fetches on later runs. All 149 engine tests passed on a cold run, but a repeat run failed two nested-fixture tests when Swift 6.4’s build backend mixed dependency deployment targets. The command reports exit 3; the full engine suite is therefore not reliably green in this environment. Ordinary package/rule checks use the local runner directly and passed repeated edit/rebuild verification.
+
+The Xcode workspace's package resolution and executable build are verified. The SwiftPM rule suite above is the passing regression route. Xcode-native test/fixture builds also encounter upstream deployment-target and module/linker conflicts in this dependency graph. These failures are recorded in `LOCAL-LINTER-VERIFICATION.md`; no tests are skipped to conceal them.
