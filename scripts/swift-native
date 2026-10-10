@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Forward Swift commands to the selected toolchain with an explicit build backend.
+
+Installed privately by lint-local for its regression subprocesses. The original
+Swift executable and optional invocation trace are supplied by lint-local.
+"""
+import json
+import os
+from pathlib import Path
+import sys
+
+
+def arguments(args):
+    if not args or args[0] not in ('build', 'run', 'test'):
+        return args
+    for index, value in enumerate(args):
+        if value == '--build-system':
+            if index + 1 == len(args) or args[index + 1] != 'native':
+                raise ValueError('this regression profile requires --build-system native')
+            return args
+        if value.startswith('--build-system='):
+            if value != '--build-system=native':
+                raise ValueError('this regression profile requires --build-system native')
+            return args
+    return [args[0], '--build-system', 'native', *args[1:]]
+
+
+def main():
+    real = os.environ.get('LINT_LOCAL_REAL_SWIFT')
+    if not real or not Path(real).is_file() or Path(real).resolve() == Path(__file__).resolve():
+        raise ValueError('lint-local must supply the original Swift executable')
+    command = [real, *arguments(sys.argv[1:])]
+    trace = os.environ.get('LINT_LOCAL_SWIFT_TRACE')
+    if trace:
+        with open(trace, 'a') as output:
+            output.write(json.dumps(command) + '\n')
+    os.execv(real, command)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (OSError, ValueError) as error:
+        print(f'lint-local Swift profile: {error}', file=sys.stderr)
+        sys.exit(3)

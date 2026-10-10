@@ -38,3 +38,4 @@
 **/.build/
 
 !/scripts/ecosystem-inventory
+!/scripts/swift-native
