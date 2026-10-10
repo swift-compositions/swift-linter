@@ -98,8 +98,8 @@ jobs:
           check="$GITHUB_WORKSPACE/.github/candidate-verification/candidate-check.py"
           failures=0
           expect() {
-            python3 "$check" "$binary" "$RUNNER_TEMP/subjects/$1" "$2" "$out/$1"
-            got=$?
+            got=0
+            python3 "$check" "$binary" "$RUNNER_TEMP/subjects/$1" "$2" "$out/$1" || got=$?
             echo "$1: expected exit $3, got $got"
             [ "$got" = "$3" ] || failures=$((failures + 1))
           }
