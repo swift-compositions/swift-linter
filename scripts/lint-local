@@ -1,0 +1,402 @@
+#!/usr/bin/env python3
+"""Build the existing Runner against explicit local checkouts, then check a package."""
+
+import argparse
+import contextlib
+import datetime
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+import shutil
+import subprocess
+import sys
+import uuid
+import xml.etree.ElementTree as ET
+
+REPO = Path(__file__).resolve().parent.parent
+LOCAL = REPO / ".local-linter"
+NAMES = (
+    "swift-linter", "swift-institute-linter-rules", "swift-primitives-linter-rules",
+    "swift-standards-linter-rules", "swift-linter-rules", "swift-lint",
+)
+DEFAULT_RULES = "do throws for typed catch,bare string dependency,existential parameter"
+
+
+class Failure(Exception):
+    def __init__(self, message, code=3):
+        super().__init__(message)
+        self.code = code
+
+
+class Parser(argparse.ArgumentParser):
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        raise Failure(message + "; use --help for examples", 64)
+
+
+def arguments(argv):
+    p = Parser(description=__doc__, epilog="Exit: 0 selected rules clean; 1 violations; "
+               "2 unmeasured/incomplete; 3 setup/build failure; 64 usage error.")
+    p.add_argument("--config", type=Path, default=LOCAL / "config.json",
+                   help="explicit checkout mapping (default: .local-linter/config.json in this clone)")
+    sub = p.add_subparsers(dest="command", required=True)
+    setup = sub.add_parser("setup", help="clone pinned rule sources, resolve, build, and create a workspace")
+    setup.add_argument("--checkouts", type=Path, help="directory for the five rule/core clones")
+    for mode in ("check", "report"):
+        s = sub.add_parser(mode, help="check selected rules" if mode == "check" else "report the full bundle")
+        s.add_argument("package", type=Path, help="Swift package directory containing Package.swift")
+        s.add_argument("--bundle", choices=("institute", "primitives", "standards"), default="institute")
+        if mode == "check":
+            s.add_argument("--rules", default=DEFAULT_RULES, help="comma-separated rule IDs (default: %(default)s)")
+    sub.add_parser("rules", help="build local sources and list rule IDs in each bundle")
+    args = p.parse_args(argv)
+    if args.command == "check":
+        args.rules = [r.strip() for r in args.rules.split(",")]
+        if not all(args.rules) or len(set(args.rules)) != len(args.rules):
+            p.error("--rules requires nonempty, unique comma-separated IDs")
+    return args
+
+
+def run(command, *, cwd=REPO, env=None, log=None):
+    if log:
+        with log.open("a") as output:
+            output.write("\n$ " + repr([str(x) for x in command]) + "\n")
+            output.flush()
+            result = subprocess.run(command, cwd=cwd, env=env, stdout=output, stderr=subprocess.STDOUT)
+        if result.returncode:
+            tail = "\n".join(log.read_text(errors="replace").splitlines()[-20:])
+            raise Failure(f"command failed ({result.returncode}); see {log}\n{tail}")
+        return ""
+    result = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True)
+    if result.returncode:
+        raise Failure(f"{command[0]} failed ({result.returncode}): {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
+def write(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists() or path.read_text() != data:
+        temporary = path.with_name(path.name + ".new")
+        temporary.write_text(data)
+        temporary.replace(path)
+
+
+def save(path, value):
+    write(path, json.dumps(value, indent=2, sort_keys=True) + "\n")
+
+
+def prerequisites():
+    if platform.system() != "Darwin":
+        raise Failure("this workflow supports macOS; see scripts/README.md for prerequisites")
+    for tool in ("git", "swift", "xcodebuild"):
+        if not shutil.which(tool):
+            raise Failure(f"{tool} is missing; install/select full Xcode 27.1 with Swift 6.4")
+    version = run(["swift", "--version"])
+    if "Swift version 6.4" not in version:
+        raise Failure(f"Swift 6.4 is required; select Xcode 27.1 with DEVELOPER_DIR. Found: {version}")
+    return {"swift": version, "xcode": run(["xcodebuild", "-version"]),
+            "developerDirectory": run(["xcode-select", "-p"]),
+            "DEVELOPER_DIR": os.environ.get("DEVELOPER_DIR")}
+
+
+def configure(args, log):
+    config = args.config.expanduser().resolve()
+    if config.exists():
+        if getattr(args, "checkouts", None):
+            raise Failure(f"{config} already exists; edit its paths explicitly instead of replacing checkouts")
+        data = json.loads(config.read_text())
+    elif args.command == "setup":
+        directory = (args.checkouts or LOCAL / "checkouts").expanduser().resolve()
+        sources = {"swift-linter": str(REPO), **{n: str(directory / n) for n in NAMES[1:]}}
+        if any(Path(sources[n]).exists() for n in NAMES[1:]):
+            raise Failure("checkout directory contains existing sources; provide an explicit config to adopt them")
+        data = {"schema": 1, "sources": sources}
+        save(config, data)
+    else:
+        raise Failure(f"setup has not run: {config} is missing. Run {REPO / 'scripts/lint-local'} setup")
+    if data.get("schema") != 1 or set(data.get("sources", {})) != set(NAMES):
+        raise Failure(f"invalid config {config}; schema 1 requires all six sources listed in scripts/README.md")
+    paths = {}
+    for name, raw in data["sources"].items():
+        path = Path(raw).expanduser()
+        if not path.is_absolute():
+            path = config.parent / path
+        path = path.resolve()
+        if args.command == "setup" and name != "swift-linter" and not path.exists():
+            pins = {p["identity"]: p for p in json.loads((REPO / "Runner/accepted-graph.json").read_text())["pins"]}
+            pin = pins[name]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            print(f"Cloning {name} at {pin['state']['revision'][:12]}", file=sys.stderr)
+            run(["git", "clone", pin["location"], str(path)], log=log)
+            run(["git", "-C", str(path), "checkout", "--detach", pin["state"]["revision"]], log=log)
+        if not (path / "Package.swift").is_file():
+            raise Failure(f"{name}: missing Package.swift in {path}; correct {config}")
+        top = Path(run(["git", "-C", str(path), "rev-parse", "--show-toplevel"]))
+        if top.resolve() != path:
+            raise Failure(f"{name}: {path} must be a Git checkout or worktree root")
+        paths[name] = path
+    if paths["swift-linter"] != REPO:
+        raise Failure("run scripts/lint-local from the configured swift-linter checkout")
+    return paths
+
+
+def identity(path):
+    git = lambda *a: subprocess.check_output(["git", "-C", str(path), *a])
+    head = git("rev-parse", "HEAD").decode().strip()
+    diff = git("diff", "HEAD", "--binary")
+    untracked = sorted(filter(None, git("ls-files", "--others", "--exclude-standard", "-z").split(b"\0")))
+    digest = hashlib.sha256(head.encode() + b"\0" + diff)
+    for raw in untracked:
+        file = path / os.fsdecode(raw)
+        digest.update(raw + b"\0")
+        digest.update(os.fsencode(os.readlink(file)) if file.is_symlink() else file.read_bytes())
+    return {"path": str(path), "revision": head, "snapshot": digest.hexdigest(),
+            "changed": len(list(filter(None, git("diff", "HEAD", "--name-only", "-z").split(b"\0")))),
+            "untracked": len(untracked)}
+
+
+def bindings(state):
+    data = json.loads((state / ".build/workspace-state.json").read_text())
+    return {d["packageRef"]["identity"]: d["state"].get("path")
+            for d in data["object"]["dependencies"] if d["state"]["name"] == "edited"}
+
+
+def build(paths, log):
+    # New graph/config => new state; ordinary source edits reuse the incremental build.
+    inputs = [(REPO / "Runner" / p).read_bytes() for p in ("Package.swift", "accepted-graph.json")]
+    key = hashlib.sha256(b"\0".join(inputs) + json.dumps({k: str(v) for k, v in paths.items()}, sort_keys=True).encode()).hexdigest()[:16]
+    state = LOCAL / "builds" / key
+    for relative in ("Package.swift", "Sources/runner/main.swift"):
+        write(state / relative, (REPO / "Runner" / relative).read_text())
+    def swift(verb, *args):
+        return ["swift", verb, "--package-path", str(state), "--cache-path", str(LOCAL / "cache"),
+                "--config-path", str(LOCAL / "swiftpm-config"), "--manifest-cache", "local", *args]
+    if not (state / ".build/workspace-state.json").exists():
+        write(state / "Package.resolved", (REPO / "Runner/accepted-graph.json").read_text())
+        print(f"Resolving accepted dependency graph; log: {log}", file=sys.stderr)
+        run(swift("package", "resolve", "--force-resolved-versions"), log=log)
+    for name in NAMES:
+        have = bindings(state).get(name)
+        if not have:
+            run(swift("package", "edit", name, "--path", str(paths[name])), log=log)
+            have = bindings(state).get(name)
+        if not have or Path(have).resolve() != paths[name]:
+            raise Failure(f"wrong local binding for {name}: {have}; expected {paths[name]}. See {state}")
+    before = {n: identity(paths[n]) for n in NAMES}
+    print(f"Building local sources; log: {log}", file=sys.stderr)
+    run(swift("build", "--product", "runner"), log=log)
+    after = {n: identity(paths[n]) for n in NAMES}
+    if before != after:
+        raise Failure("local engine/rule sources changed during the build; rerun")
+    if any(Path(bindings(state).get(n, "")).resolve() != paths[n] for n in NAMES):
+        raise Failure("local dependency bindings changed during the build; rerun setup")
+    # SwiftPM maintains this symlink for a native debug build on supported macOS.
+    binary = state / ".build/debug/runner"
+    if not binary.is_file():
+        raise Failure(f"build succeeded but the runner is missing: {binary}")
+    return binary, after, state
+
+
+def workspace(paths):
+    root = ET.Element("Workspace", version="1.0")
+    for name in NAMES:
+        ET.SubElement(root, "FileRef", location="absolute:" + str(paths[name]))
+    path = LOCAL / "Linter.xcworkspace"
+    write(path / "contents.xcworkspacedata", ET.tostring(root, encoding="unicode") + "\n")
+    return path
+
+
+def runner_environment(bundle):
+    # Do not inherit selection/profile/exit-policy channels from another linter invocation.
+    env = {k: v for k, v in os.environ.items() if not k.startswith("SWIFT_LINTER_")}
+    env.update(SWIFT_LINTER_BUNDLE=bundle, SWIFT_LINTER_FORMAT="structured")
+    return env
+
+
+def inventory(binary):
+    data = json.loads(run([str(binary), "--inventory"], env=runner_environment("institute")))
+    if data["schema"] != 1 or data["structuredResultSchema"] != 2:
+        raise Failure("unsupported local runner inventory schema")
+    return {b["bundle"]: b["rules"] for b in data["bundles"]}
+
+
+def validate_report(report, known, expected_files=None):
+    """Fail closed on missing measurement, mismatched schemas, or inconsistent evidence."""
+    def require(condition, detail):
+        if not condition:
+            raise Failure("incomplete runner report: " + detail, 2)
+    require(report["schema"] == 2, "expected schema 2")
+    files, active, observations = report["files"], report["activeRules"], report["observations"]
+    require(isinstance(files, list) and files and all(isinstance(f, str) for f in files), "no measured files")
+    require(len(set(files)) == len(files), "duplicate files")
+    require(any(f in ("./Package.swift", "Package.swift") for f in files), "package manifest was not measured")
+    if expected_files is not None:
+        require({str(Path(f)) for f in files} == set(expected_files), "source scan omitted package Swift files")
+    require(set(active) == set(known) and len(active) == len(known), "active rules differ from bundle inventory")
+    pairs = {(o["file"], o["rule"]) for o in observations}
+    require(len(pairs) == len(observations) and pairs == {(f, r) for f in files for r in active},
+            "missing or duplicate file/rule observations")
+    controls = report["controls"]
+    require({c["rule"] for c in controls} == set(active), "missing rule controls")
+    for item in observations + controls:
+        coverage = item["coverage"]
+        require(coverage["status"] in ("measured", "unmeasured"), "unknown coverage")
+        if coverage["status"] == "unmeasured":
+            require(bool(coverage["reason"]["code"]), "unmeasured without reason")
+    for o in observations:
+        require(type(o["applicable"]) is bool, "invalid applicability")
+    for f in report["findings"] + report["suppressions"]:
+        require(f["rule"] in active and f["fileID"] in files, "finding outside measured files/rules")
+        require(all(isinstance(f[k], str) for k in ("severity", "message")), "invalid diagnostic")
+        require(all(type(f[k]) is int and f[k] >= 0 for k in ("line", "column")), "invalid location")
+    failed = 0
+    for c in controls:
+        expectation = c["expectation"]
+        require(expectation["status"] in ("clean", "findings"), "unknown control expectation")
+        expected = 0 if expectation["status"] == "clean" else expectation["count"]
+        failed += c["coverage"]["status"] == "measured" and c["actualFindings"] != expected
+    applicable = {o["rule"] for o in observations if o["applicable"]}
+    require(set(report["applicableRules"]) == applicable, "inconsistent applicable rules")
+    expected_summary = {
+        "files": len(files), "activeRules": len(active), "applicableRules": len(applicable),
+        "applicableObservations": sum(o["applicable"] for o in observations),
+        "measuredObservations": sum(o["coverage"]["status"] == "measured" for o in observations),
+        "unmeasuredObservations": sum(o["coverage"]["status"] == "unmeasured" for o in observations),
+        "findings": len(report["findings"]), "suppressions": len(report["suppressions"]),
+        "controls": len(controls), "failedControls": failed,
+        "unmeasuredControls": sum(c["coverage"]["status"] == "unmeasured" for c in controls),
+    }
+    require(all(type(report["summary"][k]) is int and report["summary"][k] == v
+                for k, v in expected_summary.items()), "summary disagrees with evidence")
+
+
+def verdict(report, selected, status, report_mode=False):
+    findings = [f for f in report["findings"] if f["rule"] in selected]
+    suppressed = [f for f in report["suppressions"] if f["rule"] in selected]
+    incomplete = [o for o in report["observations"] if o["rule"] in selected and o["coverage"]["status"] == "unmeasured"]
+    for f in findings:
+        print(f"{f['fileID']}:{f['line']}:{f['column']}: {f['severity']}: {f['rule']}: {f['message']}")
+    for o in incomplete:
+        reason = o["coverage"]["reason"]
+        print(f"unmeasured: {o['file']}: {o['rule']}: {reason['code']}: {reason.get('detail', '')}", file=sys.stderr)
+    summary = report["summary"]
+    controls = summary["failedControls"] + summary["unmeasuredControls"]
+    if controls:
+        print(f"unmeasured: controls: {summary['failedControls']} failed, {summary['unmeasuredControls']} unmeasured", file=sys.stderr)
+    # Exit 2 from unrelated rules is allowed for a selected check only if accounted for.
+    unexplained = status not in (0, 1, 2) or (status == 1 and not findings and not controls and not report["findings"]) or (
+        status == 2 and not summary["unmeasuredObservations"] and not summary["unmeasuredControls"])
+    if unexplained:
+        print(f"unmeasured: unexplained runner exit {status}", file=sys.stderr)
+    code = 2 if incomplete or controls or unexplained else 1 if findings and not report_mode else 0
+    label = "FULL-BUNDLE REPORT (not a cleanliness verdict)" if report_mode else "SELECTED-RULE " + {0: "CLEAN", 1: "VIOLATIONS", 2: "UNMEASURED"}[code]
+    print(f"{label}: {len(findings)} findings, {len(incomplete)} unmeasured, {len(suppressed)} suppressions; exit {code}", file=sys.stderr)
+    return code
+
+
+def package_snapshot(package):
+    # Include ignored Swift sources too; build products and nested packages are not inputs.
+    digest = hashlib.sha256()
+    source_files = []
+    def error(e):
+        raise Failure(f"cannot read package inputs: {e}", 2)
+    for root, dirs, files in os.walk(package, onerror=error):
+        dirs[:] = sorted(d for d in dirs if d not in (".git", ".build", ".swiftpm", ".benchmarks", "DerivedData", "Carthage", "Pods") and not d.endswith(".docc"))
+        if Path(root) != package and "Package.swift" in files:
+            dirs[:] = []
+            continue
+        for name in sorted(files):
+            if name.endswith(".swift"):
+                path = Path(root) / name
+                relative = str(path.relative_to(package))
+                try:
+                    digest.update(relative.encode() + b"\0" + path.read_bytes())
+                except OSError as e:
+                    error(e)
+                source_files.append(relative)
+    result = {"path": str(package), "sourceSnapshot": digest.hexdigest(),
+              "swiftFiles": len(source_files), "sourceFiles": sorted(source_files)}
+    top = subprocess.run(["git", "-C", str(package), "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    if top.returncode == 0 and Path(top.stdout.strip()).resolve() == package:
+        result["git"] = identity(package)
+    return result
+
+
+@contextlib.contextmanager
+def locked():
+    LOCAL.mkdir(parents=True, exist_ok=True)
+    with (LOCAL / "lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise Failure("another lint-local command is using this checkout; let it finish, then rerun")
+        yield
+
+
+def main(argv=None):
+    args = arguments(argv)
+    if args.command in ("check", "report"):
+        args.package = args.package.expanduser().resolve()
+        if not (args.package / "Package.swift").is_file():
+            raise Failure(f"{args.package} must be a Swift package directory containing Package.swift", 64)
+    with locked():
+        stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+        evidence = LOCAL / "runs" / stamp
+        evidence.mkdir(parents=True)
+        print(f"Run evidence: {evidence}", file=sys.stderr)
+        toolchain = prerequisites()
+        paths = configure(args, evidence / "build.log")
+        binary, sources, state = build(paths, evidence / "build.log")
+        ws = workspace(paths)
+        inv = inventory(binary)
+        receipt = {"toolchain": toolchain, "sources": sources, "buildState": str(state),
+                   "binarySHA256": hashlib.sha256(binary.read_bytes()).hexdigest()}
+        write(evidence / "Package.resolved", (state / "Package.resolved").read_text())
+        save(evidence / "receipt.json", receipt)
+        print("LOCAL ENGINE (not a release)", file=sys.stderr)
+        for name, info in sources.items():
+            print(f"  {name} {info['revision'][:12]} +{info['changed']}changed +{info['untracked']}untracked "
+                  f"snapshot={info['snapshot'][:16]} {info['path']}", file=sys.stderr)
+        if args.command == "setup":
+            print(f"Setup complete. Workspace: {ws}\nCheck: ./scripts/lint-local check /path/to/package")
+            return 0
+        if args.command == "rules":
+            for bundle, rules in sorted(inv.items()):
+                print(bundle + ":\n  " + "\n  ".join(rules))
+            return 0
+        selected = args.rules if args.command == "check" else inv[args.bundle]
+        missing = set(selected) - set(inv[args.bundle])
+        if missing:
+            raise Failure(f"not in the {args.bundle} bundle: {', '.join(sorted(missing))}; run ./scripts/lint-local rules")
+        subject = package_snapshot(args.package)
+        receipt.update(package=subject, bundle=args.bundle, selectedRules=selected)
+        save(evidence / "receipt.json", receipt)
+        print(f"PACKAGE {args.package} snapshot={subject['sourceSnapshot'][:16]}; bundle={args.bundle}; rules={','.join(selected)}", file=sys.stderr)
+        with (evidence / "report.json").open("w") as out, (evidence / "runner.stderr").open("w") as err:
+            result = subprocess.run([str(binary), "."], cwd=args.package, env=runner_environment(args.bundle), stdout=out, stderr=err)
+        try:
+            if subject != package_snapshot(args.package) or sources != {n: identity(paths[n]) for n in NAMES}:
+                raise Failure("package or local engine/rule sources changed during measurement; rerun", 2)
+            report = json.loads((evidence / "report.json").read_text())
+            validate_report(report, inv[args.bundle], subject["sourceFiles"])
+            code = verdict(report, selected, result.returncode, args.command == "report")
+        except (ValueError, KeyError, TypeError) as e:
+            raise Failure(f"unreadable/incomplete runner report ({e}); see {evidence / 'runner.stderr'}", 2)
+        receipt.update(exitCode=code, runnerExitCode=result.returncode)
+        save(evidence / "receipt.json", receipt)
+        return code
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except Failure as error:
+        label = {2: "UNMEASURED", 3: "SETUP OR BUILD FAILURE", 64: "USAGE ERROR"}[error.code]
+        print(f"lint-local: {label}: {error}", file=sys.stderr)
+        sys.exit(error.code)
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        print(f"lint-local: SETUP OR BUILD FAILURE: {error}; see the run evidence and scripts/README.md", file=sys.stderr)
+        sys.exit(3)

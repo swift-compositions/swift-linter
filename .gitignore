@@ -24,3 +24,13 @@
 /Tests/**
 !/Tests/**/
 !/Tests/**/*.swift
+
+# Maintained local developer workflow. Generated state stays ignored.
+!/scripts
+/scripts/*
+!/scripts/lint-local
+!/scripts/README.md
+!/scripts/tests
+!/scripts/tests/**
+/scripts/**/__pycache__/
+!/LOCAL-LINTER-VERIFICATION.md

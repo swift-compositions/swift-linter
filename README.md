@@ -2,14 +2,24 @@
 
 ![CI](https://github.com/swift-compositions/swift-linter/actions/workflows/ci.yml/badge.svg) ![Development Status](https://img.shields.io/badge/status-active--development-blue.svg)
 
-> **Note**: swift-linter currently depends on a package that has not yet been published; it will become externally buildable when that dependency's repository goes public with the ongoing incremental release.
+For an everyday local check using editable engine and rule sources, start with the
+[local developer workflow](scripts/README.md):
+
+```sh
+./scripts/lint-local setup
+./scripts/lint-local check "/path/to/Your Swift Package"
+```
+
+This checks three explicitly named rules and reports clean, violations, or incomplete
+measurement with distinct exit codes. Setup requires Xcode 27.1 / Swift 6.4,
+Python 3.9+, Git, and network access to the accepted dependency graph.
 
 SwiftSyntax-based AST linter for Swift packages. Hosts rules whose
 predicates require an abstract syntax tree — typed-system escape
 patterns, ownership-discipline violations, spec-mirror conformances —
 that cannot be expressed as a regex on source text.
 
-## Quick Start
+## Configurable dispatcher
 
 Run the linter against any Swift package directory:
 
