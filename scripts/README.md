@@ -104,3 +104,46 @@ The Xcode workspace's package resolution and executable build are verified. The 
 ```
 
 This read-only command records package checkout paths, Git revisions, working-tree status, manifest hashes, literal dependency URLs, and matching local dependency edges. It does not descend into a repository's build caches. The result is a starting point for dependency-ordered verification, **not** a resolved SwiftPM graph or a compliance verdict: computed/conditional manifest declarations still require resolution. Preserve dirty checkouts and perform migrations in isolated clones.
+
+## Full-policy compliance
+
+A selected-rule check cannot establish full compliance. To enforce a reviewed,
+versioned policy, use:
+
+```sh
+./scripts/lint-local --config /path/to/local-config.json check /path/to/package \
+  --policy /path/to/package/compliance-policy.json
+```
+
+`--policy` and `--rules` are mutually exclusive. Policy mode measures the whole
+chosen bundle, requires its exact rule inventory, and rejects changed or dirty
+tool checkouts, a different toolchain, and a different resolved tool graph.
+Package sources may be edited normally. The evidence directory retains the
+policy, raw findings, suppressions, resolved graph, and source identities.
+
+The policy is JSON with these fields:
+
+- `schema`: `1`.
+- `bundle`: `institute`, `primitives`, or `standards`.
+- `requiredRules`: every rule ID in that bundle, with no duplicates.
+- `sources`: all six configured checkout names mapped to full Git commit IDs.
+- `toolchain`: exact `swift` and `xcode` strings from a run receipt, and
+  `buildSystem: "native"`.
+- `dependencyPins`: the resolved tool graph's `pins`, retaining `identity`,
+  `location`, and `state` for each dependency.
+- `reviewedSuppressions`: normally `[]`. Each existing, justified suppression
+  requires `rule`, relative `file`, diagnostic `line`, the entire source file's
+  `fileSHA256`, and a nonempty human-readable `reason`. Any change to its context,
+  additional suppression, or obsolete review fails the gate.
+
+Review the policy in version control alongside the package. Do not generate an
+accepted policy from arbitrary findings or update pins automatically in CI.
+Tool/rule development uses ordinary checks; once changes are reviewed, committed,
+and tested, update the compliance policy deliberately.
+
+In policy mode, exit **0** means the full policy is satisfied, with any reviewed
+suppressions explicitly disclosed. Exit **1** means findings or suppression
+review failures; **2** means incomplete measurement or a rule-inventory mismatch;
+**3** means setup, build, toolchain, source-pin, or dependency-pin failure; **64**
+means invalid arguments or policy. Only exit 0 passes the gate. `report` remains
+an evidence command whose exit 0 does not establish cleanliness.

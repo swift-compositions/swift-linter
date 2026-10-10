@@ -39,7 +39,7 @@ class Parser(argparse.ArgumentParser):
 
 
 def arguments(argv):
-    p = Parser(description=__doc__, epilog="Exit: 0 selected rules clean; 1 violations; "
+    p = Parser(description=__doc__, epilog="Exit: 0 selected rules clean (or full policy satisfied); 1 violations; "
                "2 unmeasured/incomplete; 3 setup/build failure; 64 usage error.")
     p.add_argument("--config", type=Path, default=LOCAL / "config.json",
                    help="explicit checkout mapping (default: .local-linter/config.json in this clone)")
@@ -49,15 +49,17 @@ def arguments(argv):
     for mode in ("check", "report"):
         s = sub.add_parser(mode, help="check selected rules" if mode == "check" else "report the full bundle")
         s.add_argument("package", type=Path, help="Swift package directory containing Package.swift")
-        s.add_argument("--bundle", choices=("institute", "primitives", "standards"), default="institute")
+        s.add_argument("--bundle", choices=("institute", "primitives", "standards"))
         if mode == "check":
-            s.add_argument("--rules", default=DEFAULT_RULES, help="comma-separated rule IDs (default: %(default)s)")
+            selection = s.add_mutually_exclusive_group()
+            selection.add_argument("--rules", help="comma-separated rule IDs (default: " + DEFAULT_RULES + ")")
+            selection.add_argument("--policy", type=Path, help="versioned full-bundle compliance policy; requires pinned clean tools")
     sub.add_parser("rules", help="build local sources and list rule IDs in each bundle")
     tests = sub.add_parser("test", help="run SwiftPM regression tests with the configured local sources")
     tests.add_argument("--package", choices=("swift-linter", "swift-institute-linter-rules"), default="swift-linter")
     args = p.parse_args(argv)
     if args.command == "check":
-        args.rules = [r.strip() for r in args.rules.split(",")]
+        args.rules = [r.strip() for r in (DEFAULT_RULES if args.rules is None else args.rules).split(",")]
         if not all(args.rules) or len(set(args.rules)) != len(args.rules):
             p.error("--rules requires nonempty, unique comma-separated IDs")
     return args
@@ -360,6 +362,88 @@ def verdict(report, selected, status, report_mode=False):
     return code
 
 
+def load_policy(path):
+    """A policy is an explicit, reviewed contract, never a generated clean verdict."""
+    def require(condition):
+        if not condition:
+            raise ValueError("policy schema or value mismatch")
+    try:
+        policy = json.loads(path.read_text())
+        require(policy["schema"] == 1)
+        require(policy["bundle"] in ("institute", "primitives", "standards"))
+        rules = policy["requiredRules"]
+        require(isinstance(rules, list) and rules and all(isinstance(r, str) and r for r in rules))
+        require(len(set(rules)) == len(rules))
+        require(set(policy["sources"]) == set(NAMES))
+        for revision in policy["sources"].values():
+            require(isinstance(revision, str) and len(revision) == 40 and all(c in "0123456789abcdef" for c in revision))
+        require(set(policy["toolchain"]) == {"swift", "xcode", "buildSystem"})
+        require(all(isinstance(v, str) and v for v in policy["toolchain"].values()))
+        require(isinstance(policy["dependencyPins"], list) and policy["dependencyPins"])
+        require(len({p["identity"] for p in policy["dependencyPins"]}) == len(policy["dependencyPins"]))
+        for pin in policy["dependencyPins"]:
+            require(set(pin) == {"identity", "location", "state"})
+            require(isinstance(pin["state"]["revision"], str))
+        require(isinstance(policy["reviewedSuppressions"], list))
+        keys = []
+        for review in policy["reviewedSuppressions"]:
+            require(set(review) == {"rule", "file", "line", "fileSHA256", "reason"})
+            require(review["rule"] in rules)
+            file = Path(review["file"])
+            require(not file.is_absolute() and ".." not in file.parts and str(file) != ".")
+            require(type(review["line"]) is int and review["line"] > 0)
+            require(len(review["fileSHA256"]) == 64 and all(c in "0123456789abcdef" for c in review["fileSHA256"]))
+            require(isinstance(review["reason"], str) and review["reason"].strip())
+            keys.append((review["rule"], str(file), review["line"]))
+        require(len(set(keys)) == len(keys))
+        return policy
+    except (OSError, ValueError, KeyError, TypeError, AssertionError) as error:
+        raise Failure(f"invalid compliance policy {path}: {error}; see scripts/README.md", 64)
+
+
+def verify_policy_tools(policy, sources, toolchain):
+    actual = {"swift": toolchain["swift"], "xcode": toolchain["xcode"], "buildSystem": BUILD_SYSTEM}
+    if actual != policy["toolchain"]:
+        raise Failure("compliance policy toolchain differs; select the documented Xcode/Swift build profile")
+    for name in NAMES:
+        source = sources[name]
+        if source["revision"] != policy["sources"][name] or source["changed"] or source["untracked"]:
+            raise Failure(f"compliance policy requires clean {name} at {policy['sources'][name]}; "
+                          "use the pinned checkout, or review and commit a policy update")
+
+
+def verify_policy_inventory(policy, known, resolved):
+    if set(policy["requiredRules"]) != set(known) or len(policy["requiredRules"]) != len(known):
+        raise Failure("compliance policy rule inventory differs from the full bundle; review added/removed rules", 2)
+    pins = [{k: pin[k] for k in ("identity", "location", "state")} for pin in resolved["pins"]]
+    if sorted(pins, key=lambda p: p["identity"]) != sorted(policy["dependencyPins"], key=lambda p: p["identity"]):
+        raise Failure("compliance policy dependency revisions differ from the resolved tool graph; review the graph")
+
+
+def policy_verdict(policy, report, package, code):
+    reviews = {(r["rule"], str(Path(r["file"])), r["line"]): r for r in policy["reviewedSuppressions"]}
+    seen = set()
+    rejected = False
+    for finding in report["suppressions"]:
+        key = (finding["rule"], str(Path(finding["fileID"])), finding["line"])
+        review = reviews.get(key)
+        file = (package / key[1]).resolve()
+        valid = file.is_relative_to(package.resolve()) and file.is_file()
+        if not review or not valid or hashlib.sha256(file.read_bytes()).hexdigest() != review["fileSHA256"] or key in seen:
+            print(f"UNREVIEWED SUPPRESSION: {key[1]}:{key[2]}: {key[0]}", file=sys.stderr)
+            rejected = True
+        else:
+            print(f"REVIEWED SUPPRESSION: {key[1]}:{key[2]}: {review['reason']}", file=sys.stderr)
+        seen.add(key)
+    for key in reviews.keys() - seen:
+        print(f"STALE SUPPRESSION REVIEW: {key}; remove or review the policy entry", file=sys.stderr)
+        rejected = True
+    result = 2 if code == 2 else 1 if code or rejected else 0
+    print("FULL-POLICY " + {0: "SATISFIED", 1: "VIOLATIONS", 2: "UNMEASURED"}[result]
+          + f"; {len(seen)} disclosed suppressions; exit {result}", file=sys.stderr)
+    return result
+
+
 def package_snapshot(package):
     # Include ignored Swift sources too; build products and nested packages are not inputs.
     digest = hashlib.sha256()
@@ -401,6 +485,11 @@ def locked():
 
 def main(argv=None):
     args = arguments(argv)
+    policy = load_policy(args.policy.expanduser().resolve()) if getattr(args, "policy", None) else None
+    if args.command in ("check", "report"):
+        if policy and args.bundle and args.bundle != policy["bundle"]:
+            raise Failure("--bundle conflicts with the compliance policy", 64)
+        args.bundle = policy["bundle"] if policy else args.bundle or "institute"
     if args.command in ("check", "report"):
         args.package = args.package.expanduser().resolve()
         if not (args.package / "Package.swift").is_file():
@@ -414,6 +503,8 @@ def main(argv=None):
         paths = configure(args, evidence / "build.log")
         if args.command == "test":
             return test_sources(paths, args.package, evidence, toolchain)
+        if policy:
+            verify_policy_tools(policy, {n: identity(paths[n]) for n in NAMES}, toolchain)
         binary, sources, state = build(paths, evidence / "build.log")
         ws = workspace(paths)
         inv = inventory(binary)
@@ -432,7 +523,12 @@ def main(argv=None):
             for bundle, rules in sorted(inv.items()):
                 print(bundle + ":\n  " + "\n  ".join(rules))
             return 0
-        selected = args.rules if args.command == "check" else inv[args.bundle]
+        if policy:
+            verify_policy_tools(policy, sources, toolchain)
+            verify_policy_inventory(policy, inv[args.bundle], json.loads((state / "Package.resolved").read_text()))
+            save(evidence / "policy.json", policy)
+            receipt["policySHA256"] = hashlib.sha256(json.dumps(policy, sort_keys=True).encode()).hexdigest()
+        selected = policy["requiredRules"] if policy else args.rules if args.command == "check" else inv[args.bundle]
         missing = set(selected) - set(inv[args.bundle])
         if missing:
             raise Failure(f"not in the {args.bundle} bundle: {', '.join(sorted(missing))}; run ./scripts/lint-local rules")
@@ -448,6 +544,8 @@ def main(argv=None):
             report = json.loads((evidence / "report.json").read_text())
             validate_report(report, inv[args.bundle], subject["sourceFiles"])
             code = verdict(report, selected, result.returncode, args.command == "report")
+            if policy:
+                code = policy_verdict(policy, report, args.package, code)
         except (ValueError, KeyError, TypeError) as e:
             raise Failure(f"unreadable/incomplete runner report ({e}); see {evidence / 'runner.stderr'}", 2)
         receipt.update(exitCode=code, runnerExitCode=result.returncode)
