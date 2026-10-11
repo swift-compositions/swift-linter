@@ -17,6 +17,9 @@
 #   remains untagged in the release sense.
 # - Assets, replaced in place on every publish: one baked `swift-linter`,
 #   `RULE-INVENTORY.json`, `MANIFEST.json`, and `SHA256SUMS` covering them all.
+# - Revision-named copies (`swift-linter-<platform>-<engine>`, its inventory and
+#   manifest, `SHA256SUMS-<engine>`) are added on every publish and never
+#   replaced or removed, so a consumer pinned to a revision keeps working.
 # - Binaries are built inside the exact Swift 6.4 release-floor image used by
 #   the universal swift-linter job — for ABI/runtime compatibility. Bump the
 #   digest in lockstep with the universal reusable's release-floor pin.
@@ -684,6 +687,38 @@ jobs:
           test "$(jq -r .engineRevision stage-macos-arm64/MANIFEST-macos-arm64.json)" = "$GITHUB_SHA"
           echo "both controlled artifacts verified: linux $LINUX_BINARY_SHA256, macos-arm64 $MACOS_BINARY_SHA256, digest $LINUX_DIGEST"
 
+      - name: Stage revision-named assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rev="$GITHUB_SHA"
+          mkdir -p pinned
+          cp stage-linux/swift-linter "pinned/swift-linter-linux-x86_64-$rev"
+          cp stage-linux/RULE-INVENTORY.json "pinned/RULE-INVENTORY-linux-x86_64-$rev.json"
+          cp stage-linux/MANIFEST.json "pinned/MANIFEST-linux-x86_64-$rev.json"
+          cp stage-macos-arm64/swift-linter-macos-arm64 "pinned/swift-linter-macos-arm64-$rev"
+          cp stage-macos-arm64/RULE-INVENTORY-macos-arm64.json "pinned/RULE-INVENTORY-macos-arm64-$rev.json"
+          cp stage-macos-arm64/MANIFEST-macos-arm64.json "pinned/MANIFEST-macos-arm64-$rev.json"
+          (cd pinned && sha256sum -- * > "SHA256SUMS-$rev")
+          cat "pinned/SHA256SUMS-$rev"
+
+      - name: Refuse to replace a published revision
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view ci-binaries >/dev/null 2>&1; then
+            existing=$(gh release view ci-binaries --json assets -q '.assets[].name')
+            for asset in pinned/*; do
+              name=$(basename "$asset")
+              if grep -qxF "$name" <<< "$existing"; then
+                echo "::error::$name is already published; revision-named assets are never replaced. Publish from a new engine commit."
+                exit 1
+              fi
+            done
+          fi
+
       - name: Publish rolling ci-binaries release
         shell: bash
         env:
@@ -700,6 +735,7 @@ jobs:
               --notes "Rolling prebuilt linter binaries for the universal swift-ci.yml. Non-semver tag: not a package release. See MANIFEST.json for the exact source revisions of this build." \
               --target "$GITHUB_SHA"
           fi
+          gh release upload ci-binaries pinned/*
           gh release upload ci-binaries \
             stage-linux/swift-linter stage-linux/RULE-INVENTORY.json \
             stage-linux/MANIFEST.json stage-linux/SHA256SUMS --clobber
@@ -708,4 +744,4 @@ jobs:
             stage-macos-arm64/MANIFEST-macos-arm64.json stage-macos-arm64/SHA256SUMS-macos-arm64 --clobber
           gh release edit ci-binaries \
             --notes "Rolling prebuilt linter binaries for the universal swift-ci.yml (updated $(date -u +%Y-%m-%dT%H:%M:%SZ)). Non-semver tag: not a package release. digest=$DIGEST"
-          echo "Published digest $DIGEST."
+          echo "Published digest $DIGEST; revision-named assets for $GITHUB_SHA kept alongside earlier revisions."
