@@ -90,8 +90,8 @@ extension Lint.Source.Walker.Test.Integration {
 
     #expect(findings.count == 2)
     let paths = Set(findings.compactMap(\.record.location.filePath))
-    #expect(paths.contains(where: { $0.hasSuffix("/nested-package-fixture/Package.swift") }))
-    #expect(paths.contains(where: { $0.hasSuffix("/Sources/Outer/x.swift") }))
-    #expect(paths.allSatisfy { !$0.contains("/Experiments/inner/") })
+    #expect(paths.contains(where: { $0.replacing("\\", with: "/").hasSuffix("/nested-package-fixture/Package.swift") }))
+    #expect(paths.contains(where: { $0.replacing("\\", with: "/").hasSuffix("/Sources/Outer/x.swift") }))
+    #expect(paths.allSatisfy { !$0.replacing("\\", with: "/").contains("/Experiments/inner/") })
   }
 }

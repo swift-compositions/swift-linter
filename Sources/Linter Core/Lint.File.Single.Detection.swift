@@ -32,7 +32,7 @@ extension Lint.File.Single.Detection {
     in source: Swift.String
   ) -> Version.Tools? {
     var lineCount = 0
-    for line in source.split(separator: "\n", maxSplits: 30, omittingEmptySubsequences: false) {
+    for line in source.split(maxSplits: 30, omittingEmptySubsequences: false, whereSeparator: \.isNewline) {
       if line.contains(Self.header) {
         let parts = line.split(
           separator: ":",
