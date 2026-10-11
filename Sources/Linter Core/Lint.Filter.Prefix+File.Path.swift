@@ -5,6 +5,10 @@ extension Lint.Filter.Prefix {
 
   @inlinable
   public init(_ filePath: File.Path) {
-    self = Self(filePath.description)
+    #if os(Windows)
+      self = Self(filePath.description.replacing("\\", with: "/"))
+    #else
+      self = Self(filePath.description)
+    #endif
   }
 }

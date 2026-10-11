@@ -52,7 +52,7 @@ extension Lint.Run.Test.`Brand Pre-Pass` {
   ) throws(Paths.Path.Error) -> File.Path {
     var components: [Swift.String] =
       testFile
-      .split(separator: "/", omittingEmptySubsequences: false)
+      .split(omittingEmptySubsequences: false, whereSeparator: { $0 == "/" || $0 == "\\" })
       .map(Swift.String.init)
     _ = components.popLast()
     _ = components.popLast()
@@ -122,7 +122,7 @@ extension Lint.Run.Test.Integration {
 
     var components: [Swift.String] =
       testFile
-      .split(separator: "/", omittingEmptySubsequences: false)
+      .split(omittingEmptySubsequences: false, whereSeparator: { $0 == "/" || $0 == "\\" })
       .map(Swift.String.init)
     _ = components.popLast()
     _ = components.popLast()

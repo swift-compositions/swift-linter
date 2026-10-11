@@ -57,7 +57,7 @@ extension Lint.Source.Walker {
       guard let relative = file.path.relative(to: root) else {
         continue
       }
-      results.append(Lint.Source.Path(relative.string))
+      results.append(Lint.Source.Path(relative))
     }
     return results.sorted(by: { $0.underlying < $1.underlying })
   }

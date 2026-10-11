@@ -10,7 +10,7 @@ extension Lint.File.Single.Test {
 extension Lint.File.Single.Test.`Local runner` {
   @Test
   func `Unsupported selections fail before package evaluation or runner execution`() throws {
-    let components = #filePath.split(separator: "/", omittingEmptySubsequences: false)
+    let components = #filePath.split(omittingEmptySubsequences: false, whereSeparator: { $0 == "/" || $0 == "\\" })
     let root = components.dropLast(3).joined(separator: "/")
     let fixture = try File.Path(root + "/Tests/Fixtures/local-unsupported")
 

@@ -96,7 +96,7 @@ import Testing
     fileprivate static func root(testFile: Swift.String = #filePath) -> Swift.String {
       var components =
         testFile
-        .split(separator: "/", omittingEmptySubsequences: false)
+        .split(omittingEmptySubsequences: false, whereSeparator: { $0 == "/" || $0 == "\\" })
         .map(Swift.String.init)
       _ = components.popLast()
       _ = components.popLast()
