@@ -628,7 +628,7 @@
       "location" : "https://github.com/swift-compositions/swift-institute-linter-rules.git",
       "state" : {
         "branch" : "main",
-        "revision" : "6a486aa6e5a1a4f8accde937da409097ad63b2b4"
+        "revision" : "7fb54f891a48007da0495e780572e49ebfd74c95"
       }
     },
     {
@@ -754,7 +754,7 @@
       "location" : "https://github.com/swift-molecules/swift-lint.git",
       "state" : {
         "branch" : "main",
-        "revision" : "f61f759487c453dd7996de004be8cba21a1e4342"
+        "revision" : "57ad8e6df252ff3e3c7c2047c5e499a595328878"
       }
     },
     {
@@ -1033,7 +1033,7 @@
       "location" : "https://github.com/swift-molecules/swift-primitives-linter-rules.git",
       "state" : {
         "branch" : "main",
-        "revision" : "feb4ccb1c145c8b45cff8ef226c640804a028b1a"
+        "revision" : "5bd488eec035969a5ab57c210e1af986cd09aa8e"
       }
     },
     {
