@@ -216,7 +216,7 @@ extension Lint.File.Single.Test.Eval.Unit {
   func `The SARIF nested fixture keeps its exact package manifest`() throws {
     let manifest = try Lint.File.Single.contents(
       of: File.Path("\(Self.root())/Tests/Fixtures/report-format-nested/Lint/Package.swift")
-    )
+    ).replacing("\r\n", with: "\n")
     #expect(
       manifest == """
         // swift-tools-version: 6.4
