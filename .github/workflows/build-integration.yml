@@ -47,6 +47,7 @@ jobs:
 
       - name: Install system dependencies
         if: matrix.platform == 'linux'
+        shell: bash
         run: |
           set -euo pipefail
           apt-get update -qq

@@ -152,7 +152,7 @@ extension Lint.File.Single.Test.Eval.Unit {
 
 extension Lint.File.Single.Test.Eval.Unit {
   private static func root(testFile: Swift.String = #filePath) -> Swift.String {
-    var components = testFile.split(separator: "/", omittingEmptySubsequences: false)
+    var components = testFile.split(omittingEmptySubsequences: false, whereSeparator: { $0 == "/" || $0 == "\\" })
       .map(Swift.String.init)
     _ = components.popLast()
     _ = components.popLast()
