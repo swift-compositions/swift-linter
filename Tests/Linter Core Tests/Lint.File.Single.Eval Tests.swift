@@ -174,7 +174,7 @@ extension Lint.File.Single.Test.Eval.Unit {
 
     let linter = try Lint.File.Single.Eval.linterDependency(path: root)
     #expect(linter.source == .path(root))
-    #expect(linter.name == "swift-linter")
+    #expect(linter.name == Package.Name(Lint.File.Single.Eval.pathIdentity(root)))
     #expect(linter.products == ["Linter"])
 
     let configuration = Lint.File.Single.Eval.configuration(
@@ -188,7 +188,7 @@ extension Lint.File.Single.Test.Eval.Unit {
     #expect(configuration.executableName == "Lint Eval")
     #expect(configuration.dependencies.count == 1)
     #expect(configuration.dependencies.first?.source == .path(root))
-    #expect(configuration.dependencies.first?.name == "swift-linter")
+    #expect(configuration.dependencies.first?.name == Package.Name(Lint.File.Single.Eval.pathIdentity(root)))
     #expect(configuration.dependencies.first?.products == ["Linter"])
     #expect(configuration.platforms == [".macOS(.v27)"])
     #expect(configuration.swiftLanguageModes == [".v6"])
@@ -242,5 +242,14 @@ extension Lint.File.Single.Test.Eval.Unit {
 
         """
     )
+  }
+}
+
+extension Lint.File.Single.Test.Eval.Unit {
+  @Test
+  func `a path dependency is named by its directory, as SwiftPM identifies it`() {
+    #expect(Lint.File.Single.Eval.pathIdentity("/work/swift-linter") == "swift-linter")
+    #expect(Lint.File.Single.Eval.pathIdentity("/tmp/engine-checkout/") == "engine-checkout")
+    #expect(Lint.File.Single.Eval.pathIdentity("D:\\a\\swift-linter\\swift-linter") == "swift-linter")
   }
 }

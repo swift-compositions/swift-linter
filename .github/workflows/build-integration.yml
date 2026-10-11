@@ -1,0 +1,110 @@
+name: build-integration
+
+# Proves that SwiftPM builds the nested Lint package and the generated eval
+# package against the engine at this exact revision, and that both keep SARIF
+# output and the strict exit. The unit tests run these dispatches through the
+# package-built runner (SWIFT_LINTER_TEST_DISPATCH_EXECUTABLE) and stay fast;
+# this job carries the cold builds they no longer do.
+
+permissions: {}
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            runs-on: ${{ 'xcode-27' }}
+            container: ""
+          - platform: linux
+            runs-on: ubuntu-latest
+            container: swiftlang/swift@sha256:8d614165059587ce9dcf6727a76aeff4cbf1cde41fde9a9281a43803be736224
+    runs-on: ${{ matrix.runs-on }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      XCODE_VERSION: "27.1"
+    steps:
+      - name: Harden runner (audit-mode egress logging)
+        if: matrix.platform == 'linux'
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          persist-credentials: false
+
+      - name: Install system dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          apt-get install -qq -y jq uuid-dev git
+
+      - name: Select Xcode ${{ env.XCODE_VERSION }}
+        if: matrix.platform == 'macos'
+        run: sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+
+      - name: Configure private-dep access
+        uses: swift-institute/.github/.github/actions/configure-private-repos@a7d550952f7574c09b181d31b2a6c9c719b57f8b  # main 2026-10-03, mints for swift-molecules and swift-compositions
+        with:
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          app-client-id: ${{ vars.SWIFT_INSTITUTE_BOT_APP_ID }}
+          app-private-key: ${{ secrets.SWIFT_INSTITUTE_BOT_APP_PRIVATE_KEY }}
+          enabled: true
+
+      - name: Build the CLI under test
+        shell: bash
+        run: |
+          set -euo pipefail
+          swift build --product swift-linter
+          echo "CLI=$(swift build --show-bin-path)/swift-linter" >> "$GITHUB_ENV"
+
+      - name: Nested package against this revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          cp -R Tests/Fixtures/report-format-nested "$work/"
+          ln -s "$GITHUB_WORKSPACE" "$work/swift-linter"
+          manifest="$work/report-format-nested/Lint/Package.swift"
+          published='.package(url: "https://github.com/swift-compositions/swift-linter.git", branch: "main")'
+          grep -qF "$published" "$manifest"
+          sed -i.bak "s#\.package(url: \"https://github.com/swift-compositions/swift-linter.git\", branch: \"main\")#.package(path: \"$work/swift-linter\")#" "$manifest"
+          if grep -qF "$published" "$manifest"; then echo "::error::fixture still points at the published engine"; exit 1; fi
+          status=0
+          "$CLI" --format sarif --exit-policy strict "$work/report-format-nested" > nested.sarif 2> nested.err || status=$?
+          cat nested.err
+          test "$status" -eq 1
+          jq -e '.version == "2.1.0" and (.runs[0].results | length) == 1 and .runs[0].results[0].ruleId == "report format fixture" and .runs[0].results[0].level == "error" and .runs[0].results[0].message.text == "fixture rule fired"' nested.sarif
+          grep -q "active rules" nested.err
+          grep -q "1 file linted" nested.err
+          grep -q "1 violation" nested.err
+          grep -q "1 finding" nested.err
+          if grep -q "active rules" nested.sarif; then echo "::error::summary leaked into SARIF stdout"; exit 1; fi
+
+      - name: Eval package against this revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          SWIFT_LINTER_PATH="$GITHUB_WORKSPACE" "$CLI" --format sarif --exit-policy strict Tests/Fixtures/report-format-eval > eval.sarif 2> eval.err || status=$?
+          cat eval.err
+          test "$status" -eq 1
+          jq -e '.version == "2.1.0" and (.runs[0].results | length) == 1 and .runs[0].results[0].ruleId == "report format fixture" and .runs[0].results[0].level == "error"' eval.sarif
+          grep -q "active rules" eval.err
+          grep -q "1 file linted" eval.err
+          grep -q "1 violation" eval.err
+          grep -q "1 finding" eval.err
+          if grep -q "active rules" eval.sarif; then echo "::error::summary leaked into SARIF stdout"; exit 1; fi

@@ -114,9 +114,14 @@ extension Lint.File.Single.Eval {
     }
     return Package.Dependency(
       source: .path(rawPath),
-      name: "swift-linter",
+      name: Package.Name(Self.pathIdentity(rawPath)),
       products: ["Linter"]
     )
+  }
+
+  internal static func pathIdentity(_ rawPath: Swift.String) -> Swift.String {
+    rawPath.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(Swift.String.init)
+      ?? "swift-linter"
   }
 
   internal static func configuration(
@@ -215,7 +220,7 @@ extension Lint.File.Single.Eval {
       ),
       Manifest.Dependency(
         path: linterPath,
-        name: "swift-linter",
+        name: Self.pathIdentity(linterPath),
         product: "Linter",
         imports: ["Linter"]
       ),
