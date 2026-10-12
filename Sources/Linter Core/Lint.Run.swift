@@ -33,7 +33,7 @@ extension Lint.Run {
     var repairs: [Repair.Proposal] = []
     let controls = try Self.controls(for: effective)
 
-    let types = Self.types(under: paths)
+    let (types, index) = Self.packageFacts(under: paths)
     for root in paths {
       let sourcePaths = Lint.Source.Walker.paths(under: root)
       for sourcePath in sourcePaths {
@@ -41,7 +41,8 @@ extension Lint.Run {
           root: root,
           relativePath: sourcePath,
           manager: &manager,
-          types: types
+          types: types,
+          index: index
         )
         let filePath = try Self.resolve(root: root, relativePath: sourcePath)
         files.append(filePath)
@@ -135,7 +136,8 @@ extension Lint.Run {
           path: control.path,
           tree: tree,
           converter: converter,
-          types: Lint.Brand.types(in: tree)
+          types: Lint.Brand.types(in: tree),
+          index: .collect(from: tree)
         )
         let severity = entry.severity ?? entry.rule.severity.default
         let observation = entry.rule.observe(parsed, severity)
@@ -180,7 +182,8 @@ extension Lint.Run {
     root: File.Path,
     relativePath: Lint.Source.Path,
     manager: inout Source.Manager,
-    types: Swift.Set<Swift.String>
+    types: Swift.Set<Swift.String>,
+    index: Lint.Source.Index = .init()
   ) throws(Error) -> Lint.Source.Parsed {
     let absoluteString: Swift.String
     let filePath: File.Path
@@ -223,14 +226,16 @@ extension Lint.Run {
       path: relativePath,
       tree: tree,
       converter: converter,
-      types: types
+      types: types,
+      index: index
     )
   }
 
-  fileprivate static func types(
+  fileprivate static func packageFacts(
     under paths: [File.Path]
-  ) -> Swift.Set<Swift.String> {
+  ) -> (types: Swift.Set<Swift.String>, index: Lint.Source.Index) {
     var names: Swift.Set<Swift.String> = []
+    var index = Lint.Source.Index()
     for root in paths {
       for sourcePath in Lint.Source.Walker.paths(under: root) {
         let filePath: File.Path
@@ -260,8 +265,9 @@ extension Lint.Run {
         guard let text = Swift.String(validating: bytes, as: UTF8.self) else { continue }
         let tree = Parser.parse(source: text)
         names.formUnion(Lint.Brand.types(in: tree))
+        index.merge(.collect(from: tree))
       }
     }
-    return names
+    return (names, index)
   }
 }
