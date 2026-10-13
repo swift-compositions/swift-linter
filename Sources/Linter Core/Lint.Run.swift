@@ -79,7 +79,11 @@ extension Lint.Run {
               record: record,
               visibility: visibility
             )
-            if suppression.suppresses(line: record.location.line, rule: ruleID) {
+            if suppression.suppresses(
+              line: record.location.line,
+              rule: ruleID,
+              sanctioned: entry.rule.suppression
+            ) {
               if capture != .findings {
                 suppressed.append(finding)
               }

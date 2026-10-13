@@ -11,15 +11,19 @@ extension Lint.Suppression {
 
     public let reason: Swift.String?
 
+    public let directive: Lint.Rule.Suppression.Directive
+
     @inlinable
     public init(
       line: Text.Line.Number,
       rule: Lint.Rule.ID,
-      reason: Swift.String? = nil
+      reason: Swift.String? = nil,
+      directive: Lint.Rule.Suppression.Directive = .next
     ) {
       self.line = line
       self.rule = rule
       self.reason = reason
+      self.directive = directive
     }
   }
 }
