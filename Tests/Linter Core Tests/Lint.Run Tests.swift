@@ -177,3 +177,26 @@ extension Lint.Run.Test.Integration {
     #expect(findings.count == 0)
   }
 }
+
+extension Lint.Run.Test.Unit {
+  private static func licenseRoot(key: Swift.String) -> File.Path {
+    let root = try! File.Path.Temporary.deterministic(prefix: "lint-license-root-", key: key, suffix: "")
+    try! File.Directory(root).create.recursive()
+    return root
+  }
+
+  @Test
+  func `the package license is read from LICENSE.md, then LICENSE`() {
+    let markdown = Self.licenseRoot(key: "markdown")
+    try! File(markdown / "LICENSE.md").write.atomic("Apache License")
+    #expect(Lint.Run.license(at: markdown) == .text("Apache License"))
+    let plain = Self.licenseRoot(key: "plain")
+    try! File(plain / "LICENSE").write.atomic("MIT License")
+    #expect(Lint.Run.license(at: plain) == .text("MIT License"))
+  }
+
+  @Test
+  func `a package without a license file reads as absent`() {
+    #expect(Lint.Run.license(at: Self.licenseRoot(key: "absent")) == .absent)
+  }
+}

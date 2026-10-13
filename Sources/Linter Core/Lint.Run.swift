@@ -141,7 +141,7 @@ extension Lint.Run {
           tree: tree,
           converter: converter,
           types: Lint.Brand.types(in: tree),
-          index: .collect(from: tree)
+          index: Self.controlIndex(tree: tree, license: control.license)
         )
         let severity = entry.severity ?? entry.rule.severity.default
         let observation = entry.rule.observe(parsed, severity)
@@ -235,11 +235,40 @@ extension Lint.Run {
     )
   }
 
+  fileprivate static func controlIndex(
+    tree: SourceFileSyntax,
+    license: Lint.Source.Index.License
+  ) -> Lint.Source.Index {
+    var index = Lint.Source.Index.collect(from: tree)
+    index.license = license
+    return index
+  }
+
+  internal static func license(at root: File.Path) -> Lint.Source.Index.License {
+    for name in ["LICENSE.md", "LICENSE"] {
+      let path: File.Path
+      do throws(Paths.Path.Error) {
+        path = root.appending(try File.Path(name))
+      } catch {
+        continue
+      }
+      do throws(File.System.Read.Full.Error) {
+        return .text(try Lint.File.Single.contents(of: path))
+      } catch {
+        continue
+      }
+    }
+    return .absent
+  }
+
   fileprivate static func packageFacts(
     under paths: [File.Path]
   ) -> (types: Swift.Set<Swift.String>, index: Lint.Source.Index) {
     var names: Swift.Set<Swift.String> = []
     var index = Lint.Source.Index()
+    for root in paths where index.license == .unread {
+      index.license = Self.license(at: root)
+    }
     for root in paths {
       for sourcePath in Lint.Source.Walker.paths(under: root) {
         let filePath: File.Path
