@@ -34,6 +34,15 @@ extension Lint.Suppression {
   public func entries(suppressing line: Text.Line.Number, rule: Lint.Rule.ID) -> [Entry] {
     entries.filter { $0.line == line && $0.rule == rule }
   }
+
+  @inlinable
+  public func suppresses(
+    line: Text.Line.Number,
+    rule: Lint.Rule.ID,
+    sanctioned policy: Lint.Rule.Suppression
+  ) -> Swift.Bool {
+    entries.contains { $0.line == line && $0.rule == rule && policy.sanctions($0.directive) }
+  }
 }
 
 extension Lint.Suppression {
@@ -116,7 +125,8 @@ extension Lint.Suppression {
             Self.Entry(
               line: Text.Line.Number(UInt(suppressedLine)),
               rule: ruleID,
-              reason: nil
+              reason: nil,
+              directive: .next
             )
           )
           pendingReasonIndex = newIndex
@@ -132,7 +142,8 @@ extension Lint.Suppression {
           Self.Entry(
             line: Text.Line.Number(UInt(directiveLine)),
             rule: ruleID,
-            reason: nil
+            reason: nil,
+            directive: .line
           )
         )
         pendingReasonIndex = newIndex
@@ -153,7 +164,8 @@ extension Lint.Suppression {
         entries[pending] = Self.Entry(
           line: entries[pending].line,
           rule: entries[pending].rule,
-          reason: combined
+          reason: combined,
+          directive: entries[pending].directive
         )
       } else {
 

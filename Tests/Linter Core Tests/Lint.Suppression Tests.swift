@@ -128,6 +128,7 @@ extension Lint.Rule {
   fileprivate static let `suppression fixture` = Lint.Rule(
     id: "suppression fixture",
     default: .warning,
+    suppression: .both,
     controls: [
       .init(
         id: "suppression fixture fires on the target call",
@@ -311,5 +312,89 @@ extension Lint.Suppression.Test.`Engine Integration` {
     let findings = try Lint.Run.run(paths: [root], configuration: configuration)
     #expect(findings.count == 1)
     #expect(findings.first?.visibility == .internal)
+  }
+}
+
+extension Lint.Rule {
+  fileprivate static func `suppression policy fixture`(_ policy: Lint.Rule.Suppression) -> Lint.Rule {
+    Lint.Rule(
+      id: "suppression fixture",
+      default: .warning,
+      suppression: policy,
+      controls: [
+        .init(
+          id: "suppression policy fixture fires on the target call",
+          source: "targetCall()",
+          path: "Fixture.swift",
+          expectation: .findings(1)
+        )
+      ],
+      observe: Lint.Rule.measured { source, severity in
+        let visitor = LintSuppressionFixtureVisitor(
+          source: source.file,
+          severity: severity,
+          converter: source.converter
+        )
+        visitor.walk(source.tree)
+        return visitor.matches
+      }
+    )
+  }
+}
+
+extension Lint.Suppression.Test.`Engine Integration` {
+  fileprivate static func outcome(
+    _ content: Swift.String,
+    policy: Lint.Rule.Suppression
+  ) throws(Lint.Run.Error) -> Lint.Run.Outcome {
+    let root = Self.writeFixture(content: content)
+    let configuration = Lint.Configuration {
+      .enable(.`suppression policy fixture`(policy))
+    }
+    return try Lint.Run.run(paths: [root], capturing: .all, configuration: configuration)
+  }
+
+  fileprivate static let next = """
+    // swift-linter:disable:next suppression fixture
+    targetCall()
+    """
+
+  fileprivate static let line = """
+    targetCall() // swift-linter:disable:line suppression fixture
+    """
+
+  @Test
+  func `a rule that sanctions next elides a next directive and keeps a line directive's finding`() throws(Lint.Run.Error) {
+    let elided = try Self.outcome(Self.next, policy: .next)
+    #expect(elided.findings.isEmpty)
+    #expect(elided.suppressed.count == 1)
+    let kept = try Self.outcome(Self.line, policy: .next)
+    #expect(kept.findings.count == 1)
+    #expect(kept.suppressed.isEmpty)
+  }
+
+  @Test
+  func `a rule that sanctions line elides a line directive and keeps a next directive's finding`() throws(Lint.Run.Error) {
+    let elided = try Self.outcome(Self.line, policy: .line)
+    #expect(elided.findings.isEmpty)
+    let kept = try Self.outcome(Self.next, policy: .line)
+    #expect(kept.findings.count == 1)
+  }
+
+  @Test
+  func `a rule that sanctions nothing keeps every finding under a directive`() throws(Lint.Run.Error) {
+    #expect(try Self.outcome(Self.next, policy: .none).findings.count == 1)
+    #expect(try Self.outcome(Self.line, policy: .none).findings.count == 1)
+  }
+
+  @Test
+  func `a REASON line does not change whether a directive is sanctioned`() throws(Lint.Run.Error) {
+    let reasoned = """
+      // swift-linter:disable:next suppression fixture
+      // REASON: fixture
+      targetCall()
+      """
+    #expect(try Self.outcome(reasoned, policy: .none).findings.count == 1)
+    #expect(try Self.outcome(reasoned, policy: .both).findings.isEmpty)
   }
 }
