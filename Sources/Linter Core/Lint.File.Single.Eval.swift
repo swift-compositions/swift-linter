@@ -41,6 +41,7 @@ extension Lint.File.Single.Eval {
       consumerPackageRoot: consumerPackageRoot,
       nonce: nonce
     )
+    defer { Lint.File.Single.Channel.discard(parentManifestPath, nonce: nonce) }
 
     let dependencies: [Package.Dependency] =
       [try Self.linterDependency(path: Environment.read("SWIFT_LINTER_PATH"))]

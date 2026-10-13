@@ -110,3 +110,42 @@ extension Lint.File.Single.Channel.Test {
     #expect(fixed != unique)
   }
 }
+
+extension Lint.File.Single.Channel.Test.Unit {
+  @Test
+  func `A run's own nonce-named manifest is discarded at the end of the run`()
+    throws(Lint.File.Single.Channel.Error)
+  {
+    let root = try! File.Path.Temporary.deterministic(
+      prefix: "lint-channel-root-",
+      key: "discard",
+      suffix: ""
+    )
+    let written = try Lint.File.Single.Channel.selection.write(
+      Lint.Manifest(disabled: ["raw value access"]),
+      consumerPackageRoot: root,
+      nonce: "run-1"
+    )
+    #expect(File(written).stat.exists)
+    Lint.File.Single.Channel.discard(written, nonce: "run-1")
+    #expect(!File(written).stat.exists)
+  }
+}
+
+extension Lint.File.Single.Channel.Test.`Edge Case` {
+  @Test
+  func `The shared un-nonced manifest is kept`() throws(Lint.File.Single.Channel.Error) {
+    let root = try! File.Path.Temporary.deterministic(
+      prefix: "lint-channel-root-",
+      key: "keep-shared",
+      suffix: ""
+    )
+    let written = try Lint.File.Single.Channel.selection.write(
+      Lint.Manifest(disabled: ["raw value access"]),
+      consumerPackageRoot: root,
+      nonce: ""
+    )
+    Lint.File.Single.Channel.discard(written, nonce: "")
+    #expect(File(written).stat.exists)
+  }
+}

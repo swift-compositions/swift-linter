@@ -70,6 +70,15 @@ extension Lint.File.Single.Channel {
     return target
   }
 
+  internal static func discard(_ path: File.Path?, nonce: Swift.String) {
+    guard let path, !nonce.isEmpty else { return }
+    do throws(File.System.Delete.Error) {
+      try File(path).delete.ifExists()
+    } catch {
+      return
+    }
+  }
+
   public func read() throws(Error) -> Lint.Manifest? {
     guard let raw: Swift.String = Environment.read(variable) else {
       return nil

@@ -33,6 +33,7 @@ extension Lint.File.Single.Runner {
     } else {
       selectionPath = nil
     }
+    defer { Lint.File.Single.Channel.discard(selectionPath, nonce: nonce) }
     let environment: [Swift.String: Swift.String] = Self.environment(
       inheriting: Environment.Snapshot.current(),
       bundle: bundle,
