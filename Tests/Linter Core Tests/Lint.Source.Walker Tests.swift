@@ -83,9 +83,62 @@ extension Lint.Source.Walker.Test.Unit {
       ]
     )
   }
+
+  @Test
+  func `an explicitly selected documentation root keeps its relative Swift inputs`() {
+    let fixture = try! Lint.Source.Walker.Test.fixtureRoot()
+    let directory: File.Path = "Sources/Outer/Outer.docc"
+    let root = fixture.appending(directory)
+
+    #expect(Lint.Source.Walker.paths(under: root).map(\.underlying) == ["Example.swift"])
+  }
 }
 
 extension Lint.Source.Walker.Test.`Edge Case` {
+  @Test(arguments: [
+    "Outer.docc/Example.swift",
+    "Sources/Outer/Outer.docc/Example.swift",
+    "Sources/Outer/Outer.docc/Examples/Nested.swift",
+    "Sources/Outer..docc/Example.swift",
+  ])
+  func `documentation directory components exclude descendant source`(_ path: Swift.String)
+    throws(Paths.Path.Error)
+  {
+    let relative = try File.Path(path)
+    #expect(Lint.Source.Walker.isDocumentation(relative))
+  }
+
+  @Test(arguments: [
+    "Sources/Package/Package.swift",
+    "Sources/Outer/Outer.docc.swift",
+    "Sources/Outer/Outer.docc",
+    "Sources/Outer.docc.backup/Example.swift",
+    "Sources/Outer.doccSuffix/Example.swift",
+    "Sources/Outer.DOCC/Example.swift",
+  ])
+  func `near directory names and the final filename remain ordinary source`(_ path: Swift.String)
+    throws(Paths.Path.Error)
+  {
+    let relative = try File.Path(path)
+    #expect(!Lint.Source.Walker.isDocumentation(relative))
+  }
+
+  @Test(arguments: [
+    #"Sources\Outer\Outer.docc\Example.swift"#,
+    #"Sources\Outer.docc\Nested/Example.swift"#,
+    #"Sources/Outer.docc\Nested/Example.swift"#,
+  ])
+  func `backslashes follow the native path component contract`(_ path: Swift.String)
+    throws(Paths.Path.Error)
+  {
+    let relative = try File.Path(path)
+    #if os(Windows)
+      #expect(Lint.Source.Walker.isDocumentation(relative))
+    #else
+      #expect(!Lint.Source.Walker.isDocumentation(relative))
+    #endif
+  }
+
   @Test(arguments: [
     "import PackageDescription\nlet package = Package(name: \"Inner\")",
     "// swift-tools-version: 6.4\r\nimport PackageDescription\r\nlet package = makePackage()",

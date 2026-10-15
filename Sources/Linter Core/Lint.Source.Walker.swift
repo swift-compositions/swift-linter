@@ -44,6 +44,8 @@ extension Lint.Source.Walker {
     var nestedPackageRoots: [File.Path] = []
     for file in files {
       guard file.path.components.last?.string == "Package.swift",
+        let relative = file.path.relative(to: root),
+        !Self.isDocumentation(relative),
         let parent = file.path.parent,
         parent != root,
         let source = try? Lint.File.Single.contents(of: file.path),
@@ -58,12 +60,18 @@ extension Lint.Source.Walker {
       if nestedPackageRoots.contains(where: { file.path.hasPrefix($0) }) {
         continue
       }
-      guard let relative = file.path.relative(to: root) else {
+      guard let relative = file.path.relative(to: root),
+        !Self.isDocumentation(relative)
+      else {
         continue
       }
       results.append(Lint.Source.Path(relative))
     }
     return results.sorted(by: { $0.underlying < $1.underlying })
+  }
+
+  internal static func isDocumentation(_ relative: File.Path) -> Swift.Bool {
+    relative.components.dropLast().contains { $0.extension?.string == "docc" }
   }
 
   internal static func isPackageManifest(_ source: Swift.String) -> Swift.Bool {
