@@ -67,8 +67,19 @@ extension Lint.Source.Walker {
   }
 
   internal static func isPackageManifest(_ source: Swift.String) -> Swift.Bool {
-    let tree = Parser.parse(source: source)
-    return tree.statements.contains { statement in
+    Self.isPackageManifest(in: Parser.parse(source: source).statements)
+  }
+
+  fileprivate static func isPackageManifest(
+    in statements: CodeBlockItemListSyntax
+  ) -> Swift.Bool {
+    statements.contains { statement in
+      if let conditional = statement.item.as(IfConfigDeclSyntax.self) {
+        return conditional.clauses.contains { clause in
+          guard case .statements(let statements)? = clause.elements else { return false }
+          return Self.isPackageManifest(in: statements)
+        }
+      }
       if let declaration = statement.item.as(ImportDeclSyntax.self) {
         return declaration.path.first?.name.text == "PackageDescription"
       }

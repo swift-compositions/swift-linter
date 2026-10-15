@@ -91,6 +91,8 @@ extension Lint.Source.Walker.Test.`Edge Case` {
     "// swift-tools-version: 6.4\r\nimport PackageDescription\r\nlet package = makePackage()",
     "let package = Package(name: \"Incomplete Fixture\")",
     "import struct PackageDescription.Package\nlet package: Package = .init(name: \"Inner\")",
+    "#if canImport(PackageDescription)\nimport PackageDescription\nlet package = Package(name: \"Inner\")\n#else\nlet package = Package(name: \"Other\")\n#endif",
+    "#if os(Windows)\nlet value = 0\n#else\n#if canImport(PackageDescription)\nimport PackageDescription\nlet package = makePackage()\n#endif\n#endif",
   ])
   func `manifest syntax establishes a nested package boundary`(_ source: Swift.String) {
     #expect(Lint.Source.Walker.isPackageManifest(source))
@@ -102,6 +104,7 @@ extension Lint.Source.Walker.Test.`Edge Case` {
     "let example = \"import PackageDescription\\nlet package = Package(name: \\\"Inner\\\")\"",
     "// import PackageDescription\n// let package = Package(name: \"Inner\")\npublic enum Package {}",
     "struct Namespace { let package = Package(name: \"Value\") }",
+    "struct Namespace {\n#if os(Windows)\nlet package = Package(name: \"Value\")\n#endif\n}",
   ])
   func `ordinary source does not establish a nested package boundary`(_ source: Swift.String) {
     #expect(!Lint.Source.Walker.isPackageManifest(source))
@@ -128,6 +131,7 @@ extension Lint.Source.Walker.Test.Integration {
     #expect(paths.contains(where: { $0.replacing("\\", with: "/").hasSuffix("/Sources/Quoted/Value.swift") }))
     #expect(paths.allSatisfy { !$0.replacing("\\", with: "/").contains("/Experiments/inner/") })
     #expect(paths.allSatisfy { !$0.replacing("\\", with: "/").contains("/Experiments/headerless/") })
+    #expect(paths.allSatisfy { !$0.replacing("\\", with: "/").contains("/Experiments/conditional/") })
     #expect(paths.allSatisfy { !$0.replacing("\\", with: "/").contains("/Outer.docc/") })
   }
 }
