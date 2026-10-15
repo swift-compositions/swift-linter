@@ -1,21 +1,40 @@
 {
-  "kind": "rendered at the RULES-WINDOW-1 accepted-graph identities (candidate 683d3649) through the real prepare path; reconstructed, not captured from a hosted binary",
-  "renderer": "Institute.Source.Application.prepare(subject:xcodeApplication:linter: .local)",
+  "kind": "Static successor fixtures; not rendered or captured from a hosted binary",
+  "operation": "Remove only leaf body typealias missing from the committed predecessor rule lists",
+  "rendererExecuted": false,
+  "hostedCapture": false,
   "policyRevision": "source-enforcement-v3",
   "profileSchema": 2,
-  "subject": "swift-institute/swift-example-cli@6357eacf89f71c5581bed4b3c1c073bf5c6b826f",
-  "planner": {
-    "institute-application": "254d1fe421aa3533dcab41270311e7778b0b4a86",
-    "institute": "b556c66366554065d5aca9ddc62828a16e91aca5"
+  "basis": {
+    "enginePredecessor": "b6776f29de7e40b088ca5b4c013d49dc32733b12",
+    "committedPredecessorProfileSHA256": {
+      "institute": "556189f182773ad27d41a29d1b9e9bd22bc5e5f4a2649bfadadbc4bd93ae861c",
+      "primitives": "0e12b9dba0564f2d0885eb62f56482f0ff3ece3b58a2f67b9a3c9fce94564099",
+      "standards": "c805867da286c7ed522241b07c32e2f9fe986ff0af4443827c9705ffb6f6c2e4"
+    },
+    "committedPredecessorProvenanceSHA256": "918fe9dec729fa68aaba436fdcbab60ead5908ad270d3e34c77cfcdf25e0da6c",
+    "actualAdoptedInventorySHA256": "78a0d16a5476a99f3c5ab3f8ef0df260d5316a0316b7be8dbc9dca91a5e53642",
+    "actualAdoptedConfigurationSHA256": {
+      "institute": "205d15a352af1a75ca3f19f604c8bdd876ecdfc608043f047b25b96232949cb4",
+      "primitives": "c03bd21528d50817d1fdd8c820ee328d29c9a6fb039d848d77ec976d7e56e834",
+      "standards": "9d48fcf6436a431ca3d78dcbc3d689fa74d289e01e419ac98d0500b93b3886b2"
+    }
   },
   "packageRevisions": {
-    "swift-primitives-linter-rules": "ac9bd4a0291eb89f66671398d0ac07ff6bcf4c90",
-    "swift-standards-linter-rules": "73ec2127ee1e8ffc4f3208df9bd8a5d3018f358d",
-    "swift-institute-linter-rules": "4b2b17526df2405a37ec8bd7fbe72cddf50e423f",
-    "swift-linter-rules": "b407975e1e018b769c3cf22a901f8f1b709b2984",
-    "swift-lint": "f61f759487c453dd7996de004be8cba21a1e4342",
-    "swift-iso-9945": "b935c5d98819e763ee176b3573288795b4a14a7e"
+    "swift-institute-linter-rules": "af03a6d38e437bf20ba4e1d825e3e67f38e5f2c3",
+    "swift-lint": "54d3148f561a3880af74842bc5e86c8fd63b71be",
+    "swift-linter-rules": "cc9925e3f1c8d4853d6dbfd63e946ecff7a7a5dd",
+    "swift-primitives-linter-rules": "5bd488eec035969a5ab57c210e1af986cd09aa8e",
+    "swift-standards-linter-rules": "73ec2127ee1e8ffc4f3208df9bd8a5d3018f358d"
   },
-  "runnerGraph": "683d364988d6518fb20b3957f442816814fc9f55b5608752f2aaf5ec60a87231",
-  "verifiedWith": "swift-linter-macos-arm64 b20c1e1b0e28244c43d0bd6717b9c680f23f8f3f488df872c823e78c214d267b (published 42a6a879; rule-set check only, 4b2b1752/73ec2127 not yet baked)"
+  "sourceCoordinatesKind": "Private candidate rule-root coordinate and unchanged roots; not a claim of built or published resolution",
+  "runnerGraph": "a5c1d2eaf66984851279cde5717aa0a9b40b766622160bfab131144c0f79c2d9",
+  "runnerEngineCoordinate": "The publisher substitutes its release engine revision; the stored predecessor row is preserved",
+  "expectedEnabledRuleCounts": {
+    "institute": 126,
+    "primitives": 129,
+    "standards": 122
+  },
+  "expectedEnabledRuleUnion": 129,
+  "verification": "Static exact-set comparison only. Actual Runner inventory, profile controls and hosted adoption remain pending."
 }
