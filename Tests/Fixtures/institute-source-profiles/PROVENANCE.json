@@ -21,14 +21,14 @@
     }
   },
   "packageRevisions": {
-    "swift-institute-linter-rules": "af03a6d38e437bf20ba4e1d825e3e67f38e5f2c3",
+    "swift-institute-linter-rules": "3f70cb3544cb76681c0417595d8aef6bf0e15003",
     "swift-lint": "54d3148f561a3880af74842bc5e86c8fd63b71be",
     "swift-linter-rules": "cc9925e3f1c8d4853d6dbfd63e946ecff7a7a5dd",
     "swift-primitives-linter-rules": "5bd488eec035969a5ab57c210e1af986cd09aa8e",
     "swift-standards-linter-rules": "73ec2127ee1e8ffc4f3208df9bd8a5d3018f358d"
   },
   "sourceCoordinatesKind": "Private candidate rule-root coordinate and unchanged roots; not a claim of built or published resolution",
-  "runnerGraph": "a5c1d2eaf66984851279cde5717aa0a9b40b766622160bfab131144c0f79c2d9",
+  "runnerGraph": "5da0a5bc565f5f056fdd3347e65fb22b7353f7dcfb88a17449c10929acbb35df",
   "runnerEngineCoordinate": "The publisher substitutes its release engine revision; the stored predecessor row is preserved",
   "expectedEnabledRuleCounts": {
     "institute": 126,
