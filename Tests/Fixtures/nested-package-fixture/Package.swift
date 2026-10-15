@@ -2,4 +2,11 @@
 
 import PackageDescription
 
-let package = Package(name: "nested-package-fixture")
+let package = Package(
+    name: "nested-package-fixture",
+    targets: [
+        .target(name: "Outer"),
+        .target(name: "Package"),
+        .target(name: "Quoted"),
+    ]
+)

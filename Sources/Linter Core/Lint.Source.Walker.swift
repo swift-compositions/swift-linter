@@ -2,6 +2,8 @@ public import File_System
 public import Glob
 import Glob
 public import Lint
+internal import SwiftParser
+internal import SwiftSyntax
 
 extension Lint.Source {
 
@@ -43,7 +45,9 @@ extension Lint.Source.Walker {
     for file in files {
       guard file.path.components.last?.string == "Package.swift",
         let parent = file.path.parent,
-        parent != root
+        parent != root,
+        let source = try? Lint.File.Single.contents(of: file.path),
+        Self.isPackageManifest(source)
       else { continue }
       nestedPackageRoots.append(parent)
     }
@@ -60,5 +64,21 @@ extension Lint.Source.Walker {
       results.append(Lint.Source.Path(relative))
     }
     return results.sorted(by: { $0.underlying < $1.underlying })
+  }
+
+  internal static func isPackageManifest(_ source: Swift.String) -> Swift.Bool {
+    let tree = Parser.parse(source: source)
+    return tree.statements.contains { statement in
+      if let declaration = statement.item.as(ImportDeclSyntax.self) {
+        return declaration.path.first?.name.text == "PackageDescription"
+      }
+      guard let declaration = statement.item.as(VariableDeclSyntax.self) else { return false }
+      return declaration.bindings.contains { binding in
+        guard binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text == "package",
+          let call = binding.initializer?.value.as(FunctionCallExprSyntax.self)
+        else { return false }
+        return call.calledExpression.as(DeclReferenceExprSyntax.self)?.baseName.text == "Package"
+      }
+    }
   }
 }
