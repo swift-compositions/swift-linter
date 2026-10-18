@@ -13,14 +13,13 @@ extension Lint.File.Single.State {
 }
 
 extension Lint.File.Single.State.Test {
-    private static func freshRoot(key: Swift.String) -> File.Path {
-
-        try! File.Path.Temporary.deterministic(prefix: "lint-state-root-", key: key, suffix: "")
+    private static func freshRoot(key: Swift.String) throws(File.Path.Error) -> File.Path {
+        try File.Path.Temporary.deterministic(prefix: "lint-state-root-", key: key, suffix: "")
     }
 
     @Test
     func `Creating the state directory stamps it self-ignoring`() throws {
-        let root: File.Path = Self.freshRoot(key: "stamp")
+        let root: File.Path = try Self.freshRoot(key: "stamp")
         let directory: File.Path = try Lint.File.Single.State.create(consumerPackageRoot: root)
 
         #expect(directory == Lint.File.Single.State.directory(consumerPackageRoot: root))
@@ -30,7 +29,7 @@ extension Lint.File.Single.State.Test {
 
     @Test
     func `Creation is idempotent, so a directory predating the stamp acquires it`() throws {
-        let root: File.Path = Self.freshRoot(key: "idempotent")
+        let root: File.Path = try Self.freshRoot(key: "idempotent")
 
         let directory: File.Path = Lint.File.Single.State.directory(consumerPackageRoot: root)
         try File.Directory(directory).create.recursive()
@@ -44,7 +43,7 @@ extension Lint.File.Single.State.Test {
 
     @Test
     func `A channel write stamps the directory it writes into`() throws {
-        let root: File.Path = Self.freshRoot(key: "channel")
+        let root: File.Path = try Self.freshRoot(key: "channel")
         let channel: Lint.File.Single.Channel = .selection
 
         let target: File.Path = try channel.write(

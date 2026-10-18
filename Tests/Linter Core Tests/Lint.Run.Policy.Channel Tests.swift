@@ -1,4 +1,5 @@
 import Environment
+import Kernel
 import Testing
 
 @testable import Linter_Core
@@ -14,16 +15,22 @@ extension Lint.Run.Policy.Channel {
 
 extension Lint.Run.Policy.Channel.Test {
     private func withVariable(_ value: Swift.String?, body: () -> Swift.Void) {
-        if let value {
-
-            try! Environment.write(Lint.Run.Policy.Channel.variable, to: value)
-        } else {
-
-            try! Environment.write.unset(Lint.Run.Policy.Channel.variable)
+        do throws(Kernel.Environment.Error) {
+            if let value {
+                try Environment.write(Lint.Run.Policy.Channel.variable, to: value)
+            } else {
+                try Environment.write.unset(Lint.Run.Policy.Channel.variable)
+            }
+        } catch {
+            Issue.record("environment setup failed: \(error)")
+            return
         }
         defer {
-
-            try! Environment.write.unset(Lint.Run.Policy.Channel.variable)
+            do throws(Kernel.Environment.Error) {
+                try Environment.write.unset(Lint.Run.Policy.Channel.variable)
+            } catch {
+                Issue.record("environment cleanup failed: \(error)")
+            }
         }
         body()
     }
@@ -31,8 +38,12 @@ extension Lint.Run.Policy.Channel.Test {
     @Test
     func `unset reads nil`() {
         withVariable(nil) {
-
-            #expect(try! Lint.Run.Policy.Channel.read() == nil)
+            do throws(Lint.Run.Policy.Channel.Error) {
+                let policy = try Lint.Run.Policy.Channel.read()
+                #expect(policy == nil)
+            } catch {
+                Issue.record("unexpected channel read failure: \(error)")
+            }
         }
     }
 
@@ -40,8 +51,12 @@ extension Lint.Run.Policy.Channel.Test {
     func `vocabulary round trips`() {
         for policy in Lint.Run.Policy.allCases {
             withVariable(policy.rawValue) {
-
-                #expect(try! Lint.Run.Policy.Channel.read() == policy)
+                do throws(Lint.Run.Policy.Channel.Error) {
+                    let decoded = try Lint.Run.Policy.Channel.read()
+                    #expect(decoded == policy)
+                } catch {
+                    Issue.record("unexpected channel read failure: \(error)")
+                }
             }
         }
     }

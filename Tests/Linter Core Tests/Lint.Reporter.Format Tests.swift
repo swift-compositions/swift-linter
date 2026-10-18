@@ -1,5 +1,6 @@
 import Environment
 import JSON
+import Kernel
 import Linter
 import Linter_Reporter_Structured
 import Testing
@@ -15,16 +16,22 @@ extension Lint.Reporter.Format {
 
 extension Lint.Reporter.Format.Test {
     fileprivate static func withVariable(_ value: Swift.String?, body: () -> Swift.Void) {
-        if let value {
-
-            try! Environment.write(Lint.Reporter.Format.Channel.variable, to: value)
-        } else {
-
-            try! Environment.write.unset(Lint.Reporter.Format.Channel.variable)
+        do throws(Kernel.Environment.Error) {
+            if let value {
+                try Environment.write(Lint.Reporter.Format.Channel.variable, to: value)
+            } else {
+                try Environment.write.unset(Lint.Reporter.Format.Channel.variable)
+            }
+        } catch {
+            Issue.record("environment setup failed: \(error)")
+            return
         }
         defer {
-
-            try! Environment.write.unset(Lint.Reporter.Format.Channel.variable)
+            do throws(Kernel.Environment.Error) {
+                try Environment.write.unset(Lint.Reporter.Format.Channel.variable)
+            } catch {
+                Issue.record("environment cleanup failed: \(error)")
+            }
         }
         body()
     }
@@ -50,8 +57,12 @@ extension Lint.Reporter.Format.Test.Integration {
     @Test
     func `Unset channel preserves text compatibility`() {
         Lint.Reporter.Format.Test.withVariable(nil) {
-
-            #expect(try! Lint.Reporter.Format.Channel.read() == .text)
+            do throws(Lint.Reporter.Format.Channel.Error) {
+                let format = try Lint.Reporter.Format.Channel.read()
+                #expect(format == .text)
+            } catch {
+                Issue.record("unexpected channel read failure: \(error)")
+            }
         }
     }
 
@@ -61,8 +72,12 @@ extension Lint.Reporter.Format.Test.Integration {
             Lint.Reporter.Format.Test.withVariable(
                 Lint.Reporter.Format.Channel.value(format)
             ) {
-
-                #expect(try! Lint.Reporter.Format.Channel.read() == format)
+                do throws(Lint.Reporter.Format.Channel.Error) {
+                    let decoded = try Lint.Reporter.Format.Channel.read()
+                    #expect(decoded == format)
+                } catch {
+                    Issue.record("unexpected channel read failure: \(error)")
+                }
             }
         }
     }

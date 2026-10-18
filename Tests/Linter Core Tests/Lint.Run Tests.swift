@@ -64,7 +64,13 @@ extension Lint.Run.Test.`Brand Pre-Pass` {
     @Test
     func `brand owner run self-suppresses across files`() throws(Lint.Run.Error) {
 
-        let root = try! Self.fixtureRoot("brand-prepass-fixture")
+        let root: File.Path
+        do throws(Paths.Path.Error) {
+            root = try Self.fixtureRoot("brand-prepass-fixture")
+        } catch {
+            Issue.record("fixture root unavailable: \(error)")
+            return
+        }
         let configuration = Lint.Configuration {
             .enable(.`brand aware fixture`)
         }
@@ -75,7 +81,13 @@ extension Lint.Run.Test.`Brand Pre-Pass` {
     @Test
     func `consumer run without the brand still fires`() throws(Lint.Run.Error) {
 
-        let root = try! Self.fixtureRoot("brand-consumer-fixture")
+        let root: File.Path
+        do throws(Paths.Path.Error) {
+            root = try Self.fixtureRoot("brand-consumer-fixture")
+        } catch {
+            Issue.record("fixture root unavailable: \(error)")
+            return
+        }
         let configuration = Lint.Configuration {
             .enable(.`brand aware fixture`)
         }
@@ -134,7 +146,13 @@ extension Lint.Run.Test.Integration {
     @Test
     func `paths .all yields findings for both A and B`() throws(Lint.Run.Error) {
 
-        let root = try! Self.fixtureRoot()
+        let root: File.Path
+        do throws(Paths.Path.Error) {
+            root = try Self.fixtureRoot()
+        } catch {
+            Issue.record("fixture root unavailable: \(error)")
+            return
+        }
         let configuration = Lint.Configuration {
             .enable(.`test fixture`, paths: .all)
         }
@@ -145,7 +163,13 @@ extension Lint.Run.Test.Integration {
     @Test
     func `paths .including A yields finding for A only`() throws(Lint.Run.Error) {
 
-        let root = try! Self.fixtureRoot()
+        let root: File.Path
+        do throws(Paths.Path.Error) {
+            root = try Self.fixtureRoot()
+        } catch {
+            Issue.record("fixture root unavailable: \(error)")
+            return
+        }
         let configuration = Lint.Configuration {
             .enable(.`test fixture`, paths: .including(["Sources/A"]))
         }
@@ -157,7 +181,13 @@ extension Lint.Run.Test.Integration {
     @Test
     func `paths .excluding B yields finding for A only`() throws(Lint.Run.Error) {
 
-        let root = try! Self.fixtureRoot()
+        let root: File.Path
+        do throws(Paths.Path.Error) {
+            root = try Self.fixtureRoot()
+        } catch {
+            Issue.record("fixture root unavailable: \(error)")
+            return
+        }
         let configuration = Lint.Configuration {
             .enable(.`test fixture`, paths: .excluding(["Sources/B"]))
         }
@@ -169,7 +199,13 @@ extension Lint.Run.Test.Integration {
     @Test
     func `paths .including non-matching yields no findings`() throws(Lint.Run.Error) {
 
-        let root = try! Self.fixtureRoot()
+        let root: File.Path
+        do throws(Paths.Path.Error) {
+            root = try Self.fixtureRoot()
+        } catch {
+            Issue.record("fixture root unavailable: \(error)")
+            return
+        }
         let configuration = Lint.Configuration {
             .enable(.`test fixture`, paths: .including(["Tests/Fixtures/Other"]))
         }
@@ -179,24 +215,36 @@ extension Lint.Run.Test.Integration {
 }
 
 extension Lint.Run.Test.Unit {
-    private static func licenseRoot(key: Swift.String) -> File.Path {
-        let root = try! File.Path.Temporary.deterministic(prefix: "lint-license-root-", key: key, suffix: "")
-        try! File.Directory(root).create.recursive()
+    private static func licenseRoot(key: Swift.String) -> File.Path? {
+        let root: File.Path
+        do throws(File.Path.Error) {
+            root = try File.Path.Temporary.deterministic(prefix: "lint-license-root-", key: key, suffix: "")
+        } catch {
+            Issue.record("temporary license root unavailable: \(error)")
+            return nil
+        }
+        do throws(File.System.Create.Directory.Error) {
+            try File.Directory(root).create.recursive()
+        } catch {
+            Issue.record("license root creation failed: \(error)")
+            return nil
+        }
         return root
     }
 
     @Test
-    func `the package license is read from LICENSE.md, then LICENSE`() {
-        let markdown = Self.licenseRoot(key: "markdown")
-        try! File(markdown / "LICENSE.md").write.atomic("Apache License")
+    func `the package license is read from LICENSE.md, then LICENSE`() throws(File.System.Write.Atomic.Error) {
+        guard let markdown = Self.licenseRoot(key: "markdown") else { return }
+        try File(markdown / "LICENSE.md").write.atomic("Apache License")
         #expect(Lint.Run.license(at: markdown) == .text("Apache License"))
-        let plain = Self.licenseRoot(key: "plain")
-        try! File(plain / "LICENSE").write.atomic("MIT License")
+        guard let plain = Self.licenseRoot(key: "plain") else { return }
+        try File(plain / "LICENSE").write.atomic("MIT License")
         #expect(Lint.Run.license(at: plain) == .text("MIT License"))
     }
 
     @Test
     func `a package without a license file reads as absent`() {
-        #expect(Lint.Run.license(at: Self.licenseRoot(key: "absent")) == .absent)
+        guard let root = Self.licenseRoot(key: "absent") else { return }
+        #expect(Lint.Run.license(at: root) == .absent)
     }
 }

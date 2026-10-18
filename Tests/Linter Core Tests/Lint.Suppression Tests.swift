@@ -188,12 +188,14 @@ extension Lint.Suppression.Test.`Engine Integration` {
     @Test
     func `without directive, the fixture rule fires`() throws(Lint.Run.Error) {
 
-        let root = Self.writeFixture(
-            content: """
-                targetCall()
-                let _ = 0
-                """
-        )
+        guard
+            let root = Self.writeFixture(
+                content: """
+                    targetCall()
+                    let _ = 0
+                    """
+            )
+        else { return }
         let configuration = Lint.Configuration {
             .enable(.`suppression fixture`)
         }
@@ -204,12 +206,14 @@ extension Lint.Suppression.Test.`Engine Integration` {
     @Test
     func `disable next elides the next-line finding`() throws(Lint.Run.Error) {
 
-        let root = Self.writeFixture(
-            content: """
-                // swift-linter:disable:next suppression fixture
-                targetCall()
-                """
-        )
+        guard
+            let root = Self.writeFixture(
+                content: """
+                    // swift-linter:disable:next suppression fixture
+                    targetCall()
+                    """
+            )
+        else { return }
         let configuration = Lint.Configuration {
             .enable(.`suppression fixture`)
         }
@@ -221,11 +225,13 @@ extension Lint.Suppression.Test.`Engine Integration` {
     @Test
     func `disable line elides the same-line finding`() throws(Lint.Run.Error) {
 
-        let root = Self.writeFixture(
-            content: """
-                targetCall() // swift-linter:disable:line suppression fixture
-                """
-        )
+        guard
+            let root = Self.writeFixture(
+                content: """
+                    targetCall() // swift-linter:disable:line suppression fixture
+                    """
+            )
+        else { return }
         let configuration = Lint.Configuration {
             .enable(.`suppression fixture`)
         }
@@ -237,12 +243,14 @@ extension Lint.Suppression.Test.`Engine Integration` {
     @Test
     func `disable next with mismatched rule ID does not elide finding`() throws(Lint.Run.Error) {
 
-        let root = Self.writeFixture(
-            content: """
-                // swift-linter:disable:next other rule
-                targetCall()
-                """
-        )
+        guard
+            let root = Self.writeFixture(
+                content: """
+                    // swift-linter:disable:next other rule
+                    targetCall()
+                    """
+            )
+        else { return }
         let configuration = Lint.Configuration {
             .enable(.`suppression fixture`)
         }
@@ -253,12 +261,14 @@ extension Lint.Suppression.Test.`Engine Integration` {
     @Test
     func `Configuration rules disabled elides all findings for that rule`() throws(Lint.Run.Error) {
 
-        let root = Self.writeFixture(
-            content: """
-                targetCall()
-                targetCall()
-                """
-        )
+        guard
+            let root = Self.writeFixture(
+                content: """
+                    targetCall()
+                    targetCall()
+                    """
+            )
+        else { return }
         let configuration = Lint.Configuration(
             disabled: ["suppression fixture"]
         ) {
@@ -283,13 +293,15 @@ extension Lint.Suppression.Test.`Engine Integration` {
         .Error)
     {
 
-        let root = Self.writeFixture(
-            content: """
-                private struct Outer {
-                    func body() { targetCall() }
-                }
-                """
-        )
+        guard
+            let root = Self.writeFixture(
+                content: """
+                    private struct Outer {
+                        func body() { targetCall() }
+                    }
+                    """
+            )
+        else { return }
         let configuration = Lint.Configuration {
             .enable(.`suppression fixture`)
         }
@@ -301,11 +313,13 @@ extension Lint.Suppression.Test.`Engine Integration` {
     @Test
     func `Top-level finding is tagged internal by default`() throws(Lint.Run.Error) {
 
-        let root = Self.writeFixture(
-            content: """
-                targetCall()
-                """
-        )
+        guard
+            let root = Self.writeFixture(
+                content: """
+                    targetCall()
+                    """
+            )
+        else { return }
         let configuration = Lint.Configuration {
             .enable(.`suppression fixture`)
         }
@@ -346,8 +360,8 @@ extension Lint.Suppression.Test.`Engine Integration` {
     fileprivate static func outcome(
         _ content: Swift.String,
         policy: Lint.Rule.Suppression
-    ) throws(Lint.Run.Error) -> Lint.Run.Outcome {
-        let root = Self.writeFixture(content: content)
+    ) throws(Lint.Run.Error) -> Lint.Run.Outcome? {
+        guard let root = Self.writeFixture(content: content) else { return nil }
         let configuration = Lint.Configuration {
             .enable(.`suppression policy fixture`(policy))
         }
@@ -365,26 +379,26 @@ extension Lint.Suppression.Test.`Engine Integration` {
 
     @Test
     func `a rule that sanctions next elides a next directive and keeps a line directive's finding`() throws(Lint.Run.Error) {
-        let elided = try Self.outcome(Self.next, policy: .next)
+        guard let elided = try Self.outcome(Self.next, policy: .next) else { return }
         #expect(elided.findings.isEmpty)
         #expect(elided.suppressed.count == 1)
-        let kept = try Self.outcome(Self.line, policy: .next)
+        guard let kept = try Self.outcome(Self.line, policy: .next) else { return }
         #expect(kept.findings.count == 1)
         #expect(kept.suppressed.isEmpty)
     }
 
     @Test
     func `a rule that sanctions line elides a line directive and keeps a next directive's finding`() throws(Lint.Run.Error) {
-        let elided = try Self.outcome(Self.line, policy: .line)
+        guard let elided = try Self.outcome(Self.line, policy: .line) else { return }
         #expect(elided.findings.isEmpty)
-        let kept = try Self.outcome(Self.next, policy: .line)
+        guard let kept = try Self.outcome(Self.next, policy: .line) else { return }
         #expect(kept.findings.count == 1)
     }
 
     @Test
     func `a rule that sanctions nothing keeps every finding under a directive`() throws(Lint.Run.Error) {
-        #expect(try Self.outcome(Self.next, policy: .none).findings.count == 1)
-        #expect(try Self.outcome(Self.line, policy: .none).findings.count == 1)
+        #expect(try Self.outcome(Self.next, policy: .none)?.findings.count == 1)
+        #expect(try Self.outcome(Self.line, policy: .none)?.findings.count == 1)
     }
 
     @Test
@@ -394,7 +408,7 @@ extension Lint.Suppression.Test.`Engine Integration` {
             // REASON: fixture
             targetCall()
             """
-        #expect(try Self.outcome(reasoned, policy: .none).findings.count == 1)
-        #expect(try Self.outcome(reasoned, policy: .both).findings.isEmpty)
+        #expect(try Self.outcome(reasoned, policy: .none)?.findings.count == 1)
+        #expect(try Self.outcome(reasoned, policy: .both)?.findings.isEmpty == true)
     }
 }

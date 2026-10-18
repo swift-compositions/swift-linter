@@ -13,20 +13,33 @@ extension Lint.File.Single.Channel {
 }
 
 extension Lint.File.Single.Channel.Test {
-    private static func freshRoot(key: Swift.String) -> File.Path {
-
-        try! File.Path.Temporary.deterministic(prefix: "lint-channel-root-", key: key, suffix: "")
+    private static func freshRoot(key: Swift.String) -> File.Path? {
+        do throws(File.Path.Error) {
+            return try File.Path.Temporary.deterministic(prefix: "lint-channel-root-", key: key, suffix: "")
+        } catch {
+            Issue.record("temporary root unavailable: \(error)")
+            return nil
+        }
     }
 
-    private static func writeFixture(key: Swift.String, content: Swift.String) -> File.Path {
-
-        let path = try! File.Path.Temporary.deterministic(
-            prefix: "lint-channel-file-",
-            key: key,
-            suffix: ".json"
-        )
-
-        try! File(path).write.atomic(content)
+    private static func writeFixture(key: Swift.String, content: Swift.String) -> File.Path? {
+        let path: File.Path
+        do throws(File.Path.Error) {
+            path = try File.Path.Temporary.deterministic(
+                prefix: "lint-channel-file-",
+                key: key,
+                suffix: ".json"
+            )
+        } catch {
+            Issue.record("temporary fixture path unavailable: \(error)")
+            return nil
+        }
+        do throws(File.System.Write.Atomic.Error) {
+            try File(path).write.atomic(content)
+        } catch {
+            Issue.record("fixture write failed: \(error)")
+            return nil
+        }
         return path
     }
 
@@ -65,7 +78,7 @@ extension Lint.File.Single.Channel.Test {
 
     @Test
     func `A SET-but-malformed manifest HARD-ERRORS as unparseable`() {
-        let path = Self.writeFixture(key: "malformed", content: "this is not valid json {{{")
+        guard let path = Self.writeFixture(key: "malformed", content: "this is not valid json {{{") else { return }
         let channel = Lint.File.Single.Channel.parent
         do throws(Lint.File.Single.Channel.Error) {
             _ = try channel.resolve(raw: path.string)
@@ -83,7 +96,7 @@ extension Lint.File.Single.Channel.Test {
 
     @Test
     func `Write then resolve round-trips the manifest`() throws(Lint.File.Single.Channel.Error) {
-        let root = Self.freshRoot(key: "roundtrip")
+        guard let root = Self.freshRoot(key: "roundtrip") else { return }
         let manifest = Lint.Manifest(disabled: ["raw value access", "int public parameter"])
         let written = try Lint.File.Single.Channel.selection.write(
             manifest,
@@ -116,11 +129,17 @@ extension Lint.File.Single.Channel.Test.Unit {
     func `A run's own nonce-named manifest is discarded at the end of the run`()
         throws(Lint.File.Single.Channel.Error)
     {
-        let root = try! File.Path.Temporary.deterministic(
-            prefix: "lint-channel-root-",
-            key: "discard",
-            suffix: ""
-        )
+        let root: File.Path
+        do throws(File.Path.Error) {
+            root = try File.Path.Temporary.deterministic(
+                prefix: "lint-channel-root-",
+                key: "discard",
+                suffix: ""
+            )
+        } catch {
+            Issue.record("temporary root unavailable: \(error)")
+            return
+        }
         let written = try Lint.File.Single.Channel.selection.write(
             Lint.Manifest(disabled: ["raw value access"]),
             consumerPackageRoot: root,
@@ -135,11 +154,17 @@ extension Lint.File.Single.Channel.Test.Unit {
 extension Lint.File.Single.Channel.Test.`Edge Case` {
     @Test
     func `The shared un-nonced manifest is kept`() throws(Lint.File.Single.Channel.Error) {
-        let root = try! File.Path.Temporary.deterministic(
-            prefix: "lint-channel-root-",
-            key: "keep-shared",
-            suffix: ""
-        )
+        let root: File.Path
+        do throws(File.Path.Error) {
+            root = try File.Path.Temporary.deterministic(
+                prefix: "lint-channel-root-",
+                key: "keep-shared",
+                suffix: ""
+            )
+        } catch {
+            Issue.record("temporary root unavailable: \(error)")
+            return
+        }
         let written = try Lint.File.Single.Channel.selection.write(
             Lint.Manifest(disabled: ["raw value access"]),
             consumerPackageRoot: root,

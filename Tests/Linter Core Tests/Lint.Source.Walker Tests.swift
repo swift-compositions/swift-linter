@@ -63,9 +63,8 @@ extension Lint.Source.Walker.Test {
 
 extension Lint.Source.Walker.Test.Unit {
     @Test
-    func `paths(under:) preserves production Package files and skips package subtrees`() {
-
-        let root = try! Lint.Source.Walker.Test.fixtureRoot()
+    func `paths(under:) preserves production Package files and skips package subtrees`() throws(Paths.Path.Error) {
+        let root = try Lint.Source.Walker.Test.fixtureRoot()
         let paths = Lint.Source.Walker.paths(under: root).map(\.underlying)
         #expect(
             paths == [
@@ -85,8 +84,8 @@ extension Lint.Source.Walker.Test.Unit {
     }
 
     @Test
-    func `an explicitly selected documentation root keeps its relative Swift inputs`() {
-        let fixture = try! Lint.Source.Walker.Test.fixtureRoot()
+    func `an explicitly selected documentation root keeps its relative Swift inputs`() throws(Paths.Path.Error) {
+        let fixture = try Lint.Source.Walker.Test.fixtureRoot()
         let directory: File.Path = "Sources/Outer/Outer.docc"
         let root = fixture.appending(directory)
 
@@ -176,7 +175,13 @@ extension Lint.Source.Walker.Test.Integration {
         .Error)
     {
 
-        let root = try! Lint.Source.Walker.Test.fixtureRoot()
+        let root: File.Path
+        do throws(Paths.Path.Error) {
+            root = try Lint.Source.Walker.Test.fixtureRoot()
+        } catch {
+            Issue.record("fixture root unavailable: \(error)")
+            return
+        }
         let configuration = Lint.Configuration {
             .enable(.`test fixture`, paths: .all)
         }

@@ -260,6 +260,7 @@ let package = Package(
                 .target(name: "Linter Reporter Text"),
                 .target(name: "Linter Reporter SARIF"),
                 .product(name: "Environment", package: "swift-environment"),
+                .product(name: "Kernel", package: "swift-kernel"),
                 .product(name: "Lint", package: "swift-lint"),
                 .product(name: "Cardinal", package: "swift-cardinal"),
                 .product(name: "Text", package: "swift-text"),

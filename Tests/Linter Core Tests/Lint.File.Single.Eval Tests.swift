@@ -17,9 +17,8 @@ extension Lint.File.Single.Test {
 }
 
 extension Lint.File.Single.Test.Eval.Unit {
-    private static func freshEvalRoot(key: Swift.String) -> File.Path {
-
-        try! File.Path.Temporary.deterministic(
+    private static func freshEvalRoot(key: Swift.String) throws(File.Path.Error) -> File.Path {
+        try File.Path.Temporary.deterministic(
             prefix: "lint-eval-invalidate-",
             key: key,
             suffix: ""
@@ -28,7 +27,7 @@ extension Lint.File.Single.Test.Eval.Unit {
 
     @Test
     func `A prior materialization's Package.resolved is removed before dispatch`() throws {
-        let evalRoot: File.Path = Self.freshEvalRoot(key: "stale-lockfile")
+        let evalRoot: File.Path = try Self.freshEvalRoot(key: "stale-lockfile")
         try File.Directory(evalRoot).create.recursive()
         let resolvedManifestPath: File.Path = evalRoot / "Package.resolved"
         try File(resolvedManifestPath).write.atomic(
@@ -44,7 +43,7 @@ extension Lint.File.Single.Test.Eval.Unit {
     @Test
     func `A prior materialization's cached workspace-state is also removed`() throws {
 
-        let evalRoot: File.Path = Self.freshEvalRoot(key: "stale-workspace-state")
+        let evalRoot: File.Path = try Self.freshEvalRoot(key: "stale-workspace-state")
         let buildDirectory: File.Path = evalRoot / ".build"
         try File.Directory(buildDirectory).create.recursive()
         let resolvedManifestPath: File.Path = evalRoot / "Package.resolved"
@@ -66,7 +65,7 @@ extension Lint.File.Single.Test.Eval.Unit {
     @Test
     func `Invalidation leaves the rest of the build cache untouched`() throws {
 
-        let evalRoot: File.Path = Self.freshEvalRoot(key: "preserve-object-cache")
+        let evalRoot: File.Path = try Self.freshEvalRoot(key: "preserve-object-cache")
         let buildDirectory: File.Path = evalRoot / ".build"
         try File.Directory(buildDirectory).create.recursive()
         try File(evalRoot / "Package.resolved").write.atomic("{ }")
@@ -81,9 +80,8 @@ extension Lint.File.Single.Test.Eval.Unit {
 }
 
 extension Lint.File.Single.Test.Eval.`Edge Case` {
-    private static func freshEvalRoot(key: Swift.String) -> File.Path {
-
-        try! File.Path.Temporary.deterministic(
+    private static func freshEvalRoot(key: Swift.String) throws(File.Path.Error) -> File.Path {
+        try File.Path.Temporary.deterministic(
             prefix: "lint-eval-invalidate-edge-",
             key: key,
             suffix: ""
@@ -93,14 +91,14 @@ extension Lint.File.Single.Test.Eval.`Edge Case` {
     @Test
     func `First-ever materialization has no lockfile to remove, and is not an error`() throws {
 
-        let evalRoot: File.Path = Self.freshEvalRoot(key: "never-materialized")
+        let evalRoot: File.Path = try Self.freshEvalRoot(key: "never-materialized")
 
         try Lint.File.Single.Eval.invalidate(resolutionAt: evalRoot)
     }
 
     @Test
     func `Invalidation is idempotent across repeated calls`() throws {
-        let evalRoot: File.Path = Self.freshEvalRoot(key: "idempotent")
+        let evalRoot: File.Path = try Self.freshEvalRoot(key: "idempotent")
         let buildDirectory: File.Path = evalRoot / ".build"
         try File.Directory(buildDirectory).create.recursive()
         let resolvedManifestPath: File.Path = evalRoot / "Package.resolved"
