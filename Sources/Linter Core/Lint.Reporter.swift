@@ -1,5 +1,5 @@
 public import Lint
 
 extension Lint {
-  public enum Reporter {}
+    public enum Reporter {}
 }

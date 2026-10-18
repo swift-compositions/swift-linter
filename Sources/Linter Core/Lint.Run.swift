@@ -5,302 +5,302 @@ import SwiftSyntax
 
 extension Lint {
 
-  public enum Run {}
+    public enum Run {}
 }
 
 extension Lint.Run {
 
-  public static func run(
-    paths: [File.Path],
-    configuration: Lint.Configuration
-  ) throws(Error) -> [Lint.Finding] {
-    let outcome = try run(paths: paths, capturing: .all, configuration: configuration)
-    return outcome.findings
-  }
-
-  public static func run(
-    paths: [File.Path],
-    capturing capture: Capture,
-    configuration: Lint.Configuration
-  ) throws(Error) -> Outcome {
-
-    let effective = configuration.rules.effective.entries
-    var manager = Source.Manager()
-    var findings: [Lint.Finding] = []
-    var suppressed: [Lint.Finding] = []
-    var files: [File.Path] = []
-    var observations: [Observation] = []
-    var repairs: [Repair.Proposal] = []
-    let controls = try Self.controls(for: effective)
-
-    let (types, index) = Self.packageFacts(under: paths)
-    for root in paths {
-      let sourcePaths = Lint.Source.Walker.paths(under: root)
-      for sourcePath in sourcePaths {
-        let parsed = try parsedSource(
-          root: root,
-          relativePath: sourcePath,
-          manager: &manager,
-          types: types,
-          index: index
-        )
-        let filePath = try Self.resolve(root: root, relativePath: sourcePath)
-        files.append(filePath)
-        let suppression = Lint.Suppression.scan(
-          tree: parsed.tree,
-          converter: parsed.converter
-        )
-        for entry in effective {
-          let severity = entry.severity ?? entry.rule.severity.default
-          let observation = entry.rule.observe(parsed, severity)
-          observations.append(
-            Observation(
-              file: filePath,
-              rule: entry.rule.id,
-              coverage: observation.coverage,
-              applicability: observation.applicability
-            )
-          )
-          if !observation.findings.isEmpty {
-            repairs.append(
-              Repair.Proposal(
-                file: filePath,
-                rule: entry.rule.id,
-                proposal: entry.rule.repair(parsed)
-              )
-            )
-          }
-          let candidates = observation.findings
-          for record in candidates {
-            let ruleID = Lint.Rule.ID(_unchecked: record.identifier)
-
-            let visibility = parsed.visibility(at: record.location)
-            let finding = Lint.Finding(
-              record: record,
-              visibility: visibility
-            )
-            if suppression.suppresses(
-              line: record.location.line,
-              rule: ruleID,
-              sanctioned: entry.rule.suppression
-            ) {
-              if capture != .findings {
-                suppressed.append(finding)
-              }
-              continue
-            }
-            if capture != .suppressed {
-              findings.append(finding)
-            }
-          }
-        }
-      }
+    public static func run(
+        paths: [File.Path],
+        configuration: Lint.Configuration
+    ) throws(Error) -> [Lint.Finding] {
+        let outcome = try run(paths: paths, capturing: .all, configuration: configuration)
+        return outcome.findings
     }
-    return Outcome(
-      findings: findings,
-      suppressed: suppressed,
-      files: files,
-      rules: effective.map(\.rule.id),
-      observations: observations,
-      repairs: repairs,
-      controls: controls
-    )
-  }
 
-  fileprivate static func controls(
-    for entries: [Lint.Rule.Configuration]
-  ) throws(Error) -> [Control.Evidence] {
-    var identities: Swift.Set<Lint.Rule.Control.ID> = []
-    var evidence: [Control.Evidence] = []
-    for entry in entries {
-      guard !entry.rule.controls.isEmpty else {
-        throw .invalidControlCatalog("rule '\(entry.rule.id.underlying)' has zero controls")
-      }
-      for control in entry.rule.controls {
-        guard !control.id.underlying.isEmpty, identities.insert(control.id).inserted else {
-          throw .invalidControlCatalog("duplicate or empty control identity")
-        }
-        switch control.expectation {
-        case .clean:
-          break
-        case .findings(let count):
-          guard count > 0 else {
-            throw .invalidControlCatalog("control '\(control.id.underlying)' has invalid count")
-          }
-        }
+    public static func run(
+        paths: [File.Path],
+        capturing capture: Capture,
+        configuration: Lint.Configuration
+    ) throws(Error) -> Outcome {
+
+        let effective = configuration.rules.effective.entries
         var manager = Source.Manager()
-        let bytes = [Byte](utf8: control.source)
-        let path = control.path.underlying
-        let fileID = manager.register(fileID: path, filePath: path, content: bytes)
-        let file = manager.file(for: fileID)
-        let tree = Parser.parse(source: control.source)
-        let converter = SourceLocationConverter(fileName: path, tree: tree)
-        let parsed = Lint.Source.Parsed(
-          file: file,
-          path: control.path,
-          tree: tree,
-          converter: converter,
-          types: Lint.Brand.types(in: tree),
-          index: Self.controlIndex(tree: tree, license: control.license)
-        )
-        let severity = entry.severity ?? entry.rule.severity.default
-        let observation = entry.rule.observe(parsed, severity)
-        let coverage: Lint.Rule.Coverage
-        if observation.applicability == control.applicability {
-          coverage = observation.coverage
-        } else {
-          coverage = .unmeasured(
-            .other(
-              code: "control-applicability-mismatch",
-              detail: control.id.underlying
-            )
-          )
+        var findings: [Lint.Finding] = []
+        var suppressed: [Lint.Finding] = []
+        var files: [File.Path] = []
+        var observations: [Observation] = []
+        var repairs: [Repair.Proposal] = []
+        let controls = try Self.controls(for: effective)
+
+        let (types, index) = Self.packageFacts(under: paths)
+        for root in paths {
+            let sourcePaths = Lint.Source.Walker.paths(under: root)
+            for sourcePath in sourcePaths {
+                let parsed = try parsedSource(
+                    root: root,
+                    relativePath: sourcePath,
+                    manager: &manager,
+                    types: types,
+                    index: index
+                )
+                let filePath = try Self.resolve(root: root, relativePath: sourcePath)
+                files.append(filePath)
+                let suppression = Lint.Suppression.scan(
+                    tree: parsed.tree,
+                    converter: parsed.converter
+                )
+                for entry in effective {
+                    let severity = entry.severity ?? entry.rule.severity.default
+                    let observation = entry.rule.observe(parsed, severity)
+                    observations.append(
+                        Observation(
+                            file: filePath,
+                            rule: entry.rule.id,
+                            coverage: observation.coverage,
+                            applicability: observation.applicability
+                        )
+                    )
+                    if !observation.findings.isEmpty {
+                        repairs.append(
+                            Repair.Proposal(
+                                file: filePath,
+                                rule: entry.rule.id,
+                                proposal: entry.rule.repair(parsed)
+                            )
+                        )
+                    }
+                    let candidates = observation.findings
+                    for record in candidates {
+                        let ruleID = Lint.Rule.ID(_unchecked: record.identifier)
+
+                        let visibility = parsed.visibility(at: record.location)
+                        let finding = Lint.Finding(
+                            record: record,
+                            visibility: visibility
+                        )
+                        if suppression.suppresses(
+                            line: record.location.line,
+                            rule: ruleID,
+                            sanctioned: entry.rule.suppression
+                        ) {
+                            if capture != .findings {
+                                suppressed.append(finding)
+                            }
+                            continue
+                        }
+                        if capture != .suppressed {
+                            findings.append(finding)
+                        }
+                    }
+                }
+            }
         }
-        evidence.append(
-          .init(
-            identity: control.id,
-            rule: entry.rule.id,
-            expectation: control.expectation,
-            actualFindings: observation.findings.count,
-            coverage: coverage
-          )
+        return Outcome(
+            findings: findings,
+            suppressed: suppressed,
+            files: files,
+            rules: effective.map(\.rule.id),
+            observations: observations,
+            repairs: repairs,
+            controls: controls
         )
-      }
     }
-    return evidence
-  }
 
-  fileprivate static func resolve(
-    root: File.Path,
-    relativePath: Lint.Source.Path
-  ) throws(Error) -> File.Path {
-    guard !relativePath.underlying.isEmpty else { return root }
-    do throws(Paths.Path.Error) {
-      return root.appending(try File.Path(relativePath.underlying))
-    } catch {
-      throw .fileNotReadable(path: root)
+    fileprivate static func controls(
+        for entries: [Lint.Rule.Configuration]
+    ) throws(Error) -> [Control.Evidence] {
+        var identities: Swift.Set<Lint.Rule.Control.ID> = []
+        var evidence: [Control.Evidence] = []
+        for entry in entries {
+            guard !entry.rule.controls.isEmpty else {
+                throw .invalidControlCatalog("rule '\(entry.rule.id.underlying)' has zero controls")
+            }
+            for control in entry.rule.controls {
+                guard !control.id.underlying.isEmpty, identities.insert(control.id).inserted else {
+                    throw .invalidControlCatalog("duplicate or empty control identity")
+                }
+                switch control.expectation {
+                case .clean:
+                    break
+                case .findings(let count):
+                    guard count > 0 else {
+                        throw .invalidControlCatalog("control '\(control.id.underlying)' has invalid count")
+                    }
+                }
+                var manager = Source.Manager()
+                let bytes = [Byte](utf8: control.source)
+                let path = control.path.underlying
+                let fileID = manager.register(fileID: path, filePath: path, content: bytes)
+                let file = manager.file(for: fileID)
+                let tree = Parser.parse(source: control.source)
+                let converter = SourceLocationConverter(fileName: path, tree: tree)
+                let parsed = Lint.Source.Parsed(
+                    file: file,
+                    path: control.path,
+                    tree: tree,
+                    converter: converter,
+                    types: Lint.Brand.types(in: tree),
+                    index: Self.controlIndex(tree: tree, license: control.license)
+                )
+                let severity = entry.severity ?? entry.rule.severity.default
+                let observation = entry.rule.observe(parsed, severity)
+                let coverage: Lint.Rule.Coverage
+                if observation.applicability == control.applicability {
+                    coverage = observation.coverage
+                } else {
+                    coverage = .unmeasured(
+                        .other(
+                            code: "control-applicability-mismatch",
+                            detail: control.id.underlying
+                        )
+                    )
+                }
+                evidence.append(
+                    .init(
+                        identity: control.id,
+                        rule: entry.rule.id,
+                        expectation: control.expectation,
+                        actualFindings: observation.findings.count,
+                        coverage: coverage
+                    )
+                )
+            }
+        }
+        return evidence
     }
-  }
 
-  fileprivate static func parsedSource(
-    root: File.Path,
-    relativePath: Lint.Source.Path,
-    manager: inout Source.Manager,
-    types: Swift.Set<Swift.String>,
-    index: Lint.Source.Index = .init()
-  ) throws(Error) -> Lint.Source.Parsed {
-    let absoluteString: Swift.String
-    let filePath: File.Path
-    if relativePath.underlying.isEmpty {
-      absoluteString = root.description
-      filePath = root
-    } else {
-
-      let relative: File.Path
-      do throws(Paths.Path.Error) {
-        relative = try File.Path(relativePath.underlying)
-      } catch {
-
-        throw .fileNotReadable(path: root)
-      }
-      filePath = root.appending(relative)
-      absoluteString = filePath.description
+    fileprivate static func resolve(
+        root: File.Path,
+        relativePath: Lint.Source.Path
+    ) throws(Error) -> File.Path {
+        guard !relativePath.underlying.isEmpty else { return root }
+        do throws(Paths.Path.Error) {
+            return root.appending(try File.Path(relativePath.underlying))
+        } catch {
+            throw .fileNotReadable(path: root)
+        }
     }
-    let file = File(filePath)
-    let bytes: [Byte]
-    do throws(Either<File.System.Read.Full.Error, Never>) {
-      bytes = try file.read.full { (span: Swift.Span<Byte>) in
-        var copy: [Byte] = []
-        copy.reserveCapacity(span.count)
-        for index in span.indices { copy.append(span[index]) }
-        return copy
-      }
-    } catch {
-      throw .fileNotReadable(path: filePath)
-    }
-    guard let text = Swift.String(validating: bytes, as: UTF8.self) else {
-      throw .nonUTF8(path: filePath)
-    }
-    let id = manager.register(fileID: absoluteString, filePath: absoluteString, content: bytes)
-    let sourceFile = manager.file(for: id)
-    let tree = Parser.parse(source: text)
-    let converter = SourceLocationConverter(fileName: absoluteString, tree: tree)
-    return Lint.Source.Parsed(
-      file: sourceFile,
-      path: relativePath,
-      tree: tree,
-      converter: converter,
-      types: types,
-      index: index
-    )
-  }
 
-  fileprivate static func controlIndex(
-    tree: SourceFileSyntax,
-    license: Lint.Source.Index.License
-  ) -> Lint.Source.Index {
-    var index = Lint.Source.Index.collect(from: tree)
-    index.license = license
-    return index
-  }
-
-  internal static func license(at root: File.Path) -> Lint.Source.Index.License {
-    for name in ["LICENSE.md", "LICENSE"] {
-      let path: File.Path
-      do throws(Paths.Path.Error) {
-        path = root.appending(try File.Path(name))
-      } catch {
-        continue
-      }
-      do throws(File.System.Read.Full.Error) {
-        return .text(try Lint.File.Single.contents(of: path))
-      } catch {
-        continue
-      }
-    }
-    return .absent
-  }
-
-  fileprivate static func packageFacts(
-    under paths: [File.Path]
-  ) -> (types: Swift.Set<Swift.String>, index: Lint.Source.Index) {
-    var names: Swift.Set<Swift.String> = []
-    var index = Lint.Source.Index()
-    for root in paths where index.license == .unread {
-      index.license = Self.license(at: root)
-    }
-    for root in paths {
-      for sourcePath in Lint.Source.Walker.paths(under: root) {
+    fileprivate static func parsedSource(
+        root: File.Path,
+        relativePath: Lint.Source.Path,
+        manager: inout Source.Manager,
+        types: Swift.Set<Swift.String>,
+        index: Lint.Source.Index = .init()
+    ) throws(Error) -> Lint.Source.Parsed {
+        let absoluteString: Swift.String
         let filePath: File.Path
-        if sourcePath.underlying.isEmpty {
-          filePath = root
+        if relativePath.underlying.isEmpty {
+            absoluteString = root.description
+            filePath = root
         } else {
-          let relative: File.Path
-          do throws(File.Path.Error) {
-            relative = try File.Path(sourcePath.underlying)
-          } catch {
-            continue
-          }
-          filePath = root.appending(relative)
+
+            let relative: File.Path
+            do throws(Paths.Path.Error) {
+                relative = try File.Path(relativePath.underlying)
+            } catch {
+
+                throw .fileNotReadable(path: root)
+            }
+            filePath = root.appending(relative)
+            absoluteString = filePath.description
         }
         let file = File(filePath)
         let bytes: [Byte]
         do throws(Either<File.System.Read.Full.Error, Never>) {
-          bytes = try file.read.full { (span: Swift.Span<Byte>) in
-            var copy: [Byte] = []
-            copy.reserveCapacity(span.count)
-            for index in span.indices { copy.append(span[index]) }
-            return copy
-          }
+            bytes = try file.read.full { (span: Swift.Span<Byte>) in
+                var copy: [Byte] = []
+                copy.reserveCapacity(span.count)
+                for index in span.indices { copy.append(span[index]) }
+                return copy
+            }
         } catch {
-          continue
+            throw .fileNotReadable(path: filePath)
         }
-        guard let text = Swift.String(validating: bytes, as: UTF8.self) else { continue }
+        guard let text = Swift.String(validating: bytes, as: UTF8.self) else {
+            throw .nonUTF8(path: filePath)
+        }
+        let id = manager.register(fileID: absoluteString, filePath: absoluteString, content: bytes)
+        let sourceFile = manager.file(for: id)
         let tree = Parser.parse(source: text)
-        names.formUnion(Lint.Brand.types(in: tree))
-        index.merge(.collect(from: tree))
-      }
+        let converter = SourceLocationConverter(fileName: absoluteString, tree: tree)
+        return Lint.Source.Parsed(
+            file: sourceFile,
+            path: relativePath,
+            tree: tree,
+            converter: converter,
+            types: types,
+            index: index
+        )
     }
-    return (names, index)
-  }
+
+    fileprivate static func controlIndex(
+        tree: SourceFileSyntax,
+        license: Lint.Source.Index.License
+    ) -> Lint.Source.Index {
+        var index = Lint.Source.Index.collect(from: tree)
+        index.license = license
+        return index
+    }
+
+    internal static func license(at root: File.Path) -> Lint.Source.Index.License {
+        for name in ["LICENSE.md", "LICENSE"] {
+            let path: File.Path
+            do throws(Paths.Path.Error) {
+                path = root.appending(try File.Path(name))
+            } catch {
+                continue
+            }
+            do throws(File.System.Read.Full.Error) {
+                return .text(try Lint.File.Single.contents(of: path))
+            } catch {
+                continue
+            }
+        }
+        return .absent
+    }
+
+    fileprivate static func packageFacts(
+        under paths: [File.Path]
+    ) -> (types: Swift.Set<Swift.String>, index: Lint.Source.Index) {
+        var names: Swift.Set<Swift.String> = []
+        var index = Lint.Source.Index()
+        for root in paths where index.license == .unread {
+            index.license = Self.license(at: root)
+        }
+        for root in paths {
+            for sourcePath in Lint.Source.Walker.paths(under: root) {
+                let filePath: File.Path
+                if sourcePath.underlying.isEmpty {
+                    filePath = root
+                } else {
+                    let relative: File.Path
+                    do throws(File.Path.Error) {
+                        relative = try File.Path(sourcePath.underlying)
+                    } catch {
+                        continue
+                    }
+                    filePath = root.appending(relative)
+                }
+                let file = File(filePath)
+                let bytes: [Byte]
+                do throws(Either<File.System.Read.Full.Error, Never>) {
+                    bytes = try file.read.full { (span: Swift.Span<Byte>) in
+                        var copy: [Byte] = []
+                        copy.reserveCapacity(span.count)
+                        for index in span.indices { copy.append(span[index]) }
+                        return copy
+                    }
+                } catch {
+                    continue
+                }
+                guard let text = Swift.String(validating: bytes, as: UTF8.self) else { continue }
+                let tree = Parser.parse(source: text)
+                names.formUnion(Lint.Brand.types(in: tree))
+                index.merge(.collect(from: tree))
+            }
+        }
+        return (names, index)
+    }
 }

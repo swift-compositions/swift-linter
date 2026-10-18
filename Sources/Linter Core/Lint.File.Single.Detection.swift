@@ -1,63 +1,63 @@
-public import File_System
 internal import Byte
+public import File_System
 internal import Version
 
 extension Lint.File.Single {
 
-  public enum Detection: Swift.Sendable {}
+    public enum Detection: Swift.Sendable {}
 }
 
 extension Lint.File.Single.Detection {
 
-  public static let header: Swift.String = "swift-linter-tools-version:"
+    public static let header: Swift.String = "swift-linter-tools-version:"
 
-  public static func detect(at consumerPackageRoot: File.Path) -> File.Path? {
-    let candidate: File.Path = consumerPackageRoot / "Lint.swift"
+    public static func detect(at consumerPackageRoot: File.Path) -> File.Path? {
+        let candidate: File.Path = consumerPackageRoot / "Lint.swift"
 
-    guard File.System.Stat.isFile(at: candidate) else { return nil }
-    let source: Swift.String
-    do throws(File.System.Read.Full.Error) {
-      source = try Lint.File.Single.contents(of: candidate)
-    } catch {
-      return nil
-    }
-    return Self.hasMagicComment(in: source) ? candidate : nil
-  }
-
-  internal static func hasMagicComment(in source: Swift.String) -> Swift.Bool {
-    Self.parseMagicCommentToolsVersion(in: source) != nil
-  }
-
-  fileprivate static func parseMagicCommentToolsVersion(
-    in source: Swift.String
-  ) -> Version.Tools? {
-    var lineCount = 0
-    for line in source.split(maxSplits: 30, omittingEmptySubsequences: false, whereSeparator: \.isNewline) {
-      if line.contains(Self.header) {
-        let parts = line.split(
-          separator: ":",
-          maxSplits: 1,
-          omittingEmptySubsequences: false
-        )
-        guard parts.count == 2 else { return nil }
-        var versionSlice = parts[1]
-        while let first = versionSlice.first, first == " " || first == "\t" {
-          versionSlice = versionSlice.dropFirst()
-        }
-        while let last = versionSlice.last, last == " " || last == "\t" {
-          versionSlice = versionSlice.dropLast()
-        }
-        var input = ArraySlice([Byte](utf8: Swift.String(versionSlice)))
-        do throws(Version.Tools.ParserError) {
-          let tools = try Version.Tools.parser.parse(&input)
-          return input.isEmpty ? tools : nil
+        guard File.System.Stat.isFile(at: candidate) else { return nil }
+        let source: Swift.String
+        do throws(File.System.Read.Full.Error) {
+            source = try Lint.File.Single.contents(of: candidate)
         } catch {
-          return nil
+            return nil
         }
-      }
-      lineCount += 1
-      if lineCount >= 30 { break }
+        return Self.hasMagicComment(in: source) ? candidate : nil
     }
-    return nil
-  }
+
+    internal static func hasMagicComment(in source: Swift.String) -> Swift.Bool {
+        Self.parseMagicCommentToolsVersion(in: source) != nil
+    }
+
+    fileprivate static func parseMagicCommentToolsVersion(
+        in source: Swift.String
+    ) -> Version.Tools? {
+        var lineCount = 0
+        for line in source.split(maxSplits: 30, omittingEmptySubsequences: false, whereSeparator: \.isNewline) {
+            if line.contains(Self.header) {
+                let parts = line.split(
+                    separator: ":",
+                    maxSplits: 1,
+                    omittingEmptySubsequences: false
+                )
+                guard parts.count == 2 else { return nil }
+                var versionSlice = parts[1]
+                while let first = versionSlice.first, first == " " || first == "\t" {
+                    versionSlice = versionSlice.dropFirst()
+                }
+                while let last = versionSlice.last, last == " " || last == "\t" {
+                    versionSlice = versionSlice.dropLast()
+                }
+                var input = ArraySlice([Byte](utf8: Swift.String(versionSlice)))
+                do throws(Version.Tools.ParserError) {
+                    let tools = try Version.Tools.parser.parse(&input)
+                    return input.isEmpty ? tools : nil
+                } catch {
+                    return nil
+                }
+            }
+            lineCount += 1
+            if lineCount >= 30 { break }
+        }
+        return nil
+    }
 }

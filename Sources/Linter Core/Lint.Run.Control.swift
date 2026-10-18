@@ -1,3 +1,3 @@
 extension Lint.Run {
-  public enum Control {}
+    public enum Control {}
 }

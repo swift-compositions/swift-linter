@@ -3,11 +3,11 @@ import Linter
 import Linter_Institute_Rules
 
 Lint.run(dependencies: [
-  .package(
-    url: "https://github.com/swift-compositions/swift-institute-linter-rules.git",
-    branch: "main",
-    products: ["Linter Institute Rules"]
-  )
+    .package(
+        url: "https://github.com/swift-compositions/swift-institute-linter-rules.git",
+        branch: "main",
+        products: ["Linter Institute Rules"]
+    )
 ]) {
-  Lint.Rule.Bundle.institute
+    Lint.Rule.Bundle.institute
 }

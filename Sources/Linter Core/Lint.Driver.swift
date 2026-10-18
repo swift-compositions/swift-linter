@@ -1,123 +1,123 @@
 internal import Environment
 public import File_System
 internal import Lint
-internal import Manifest_Loader
 internal import Manifest
+internal import Manifest_Loader
 internal import Manifest_Resolver
 
 extension Lint {
 
-  public enum Driver {}
+    public enum Driver {}
 }
 
 extension Lint.Driver {
 
-  @inlinable
-  public static var dispatch: Dispatch.Type { Dispatch.self }
+    @inlinable
+    public static var dispatch: Dispatch.Type { Dispatch.self }
 
-  @inlinable
-  public static var manifest: Manifest.Type { Manifest.self }
+    @inlinable
+    public static var manifest: Manifest.Type { Manifest.self }
 }
 
 extension Lint.Driver {
 
-  public static func configuration(
-    at consumerPackageRoot: File.Path,
-    manifestOverride: File.Path? = nil
-  ) throws(Lint.Driver.Error) -> Lint.Configuration {
-    let manifestDirectory: Swift.String
-    let manifestFilename: Swift.String
-    if let override = manifestOverride {
-      guard File.System.Stat.isFile(at: override) else {
-        throw .resolutionFailed(description: "manifest override \(override) does not exist")
-      }
-      manifestDirectory = override.parent.map { $0.description } ?? "."
-      manifestFilename = override.components.last.map { $0.string } ?? "Lint.swift"
-    } else {
-      guard Self.manifest.path(at: consumerPackageRoot) != nil else {
-        return defaultConfiguration()
-      }
-      manifestDirectory = consumerPackageRoot.string
-      manifestFilename = "Lint.swift"
-    }
+    public static func configuration(
+        at consumerPackageRoot: File.Path,
+        manifestOverride: File.Path? = nil
+    ) throws(Lint.Driver.Error) -> Lint.Configuration {
+        let manifestDirectory: Swift.String
+        let manifestFilename: Swift.String
+        if let override = manifestOverride {
+            guard File.System.Stat.isFile(at: override) else {
+                throw .resolutionFailed(description: "manifest override \(override) does not exist")
+            }
+            manifestDirectory = override.parent.map { $0.description } ?? "."
+            manifestFilename = override.components.last.map { $0.string } ?? "Lint.swift"
+        } else {
+            guard Self.manifest.path(at: consumerPackageRoot) != nil else {
+                return defaultConfiguration()
+            }
+            manifestDirectory = consumerPackageRoot.string
+            manifestFilename = "Lint.swift"
+        }
 
-    guard let dependencies = manifestDependencies() else {
-      throw .resolutionFailed(
-        description: "SWIFT_LINTER_PATH is not set to a valid swift-linter checkout; \(manifestFilename) in \(manifestDirectory) cannot be resolved"
-      )
+        guard let dependencies = manifestDependencies() else {
+            throw .resolutionFailed(
+                description: "SWIFT_LINTER_PATH is not set to a valid swift-linter checkout; \(manifestFilename) in \(manifestDirectory) cannot be resolved"
+            )
+        }
+        do throws(Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>.Error) {
+            return try Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>
+                .resolve(
+                    consumerPackageRoot: manifestDirectory,
+                    filename: manifestFilename,
+                    dependencies: dependencies,
+                    defaultConfiguration: defaultConfiguration,
+                    buildConfiguration: { manifest, parent in
+                        configuration(from: manifest, parent: parent)
+                    }
+                )
+        } catch {
+            throw switch error {
+            case .consumerLoadFailed(let cause):
+                Lint.Driver.Error.resolutionFailed(
+                    description: "\(manifestFilename) in \(manifestDirectory) failed to load: \(cause)"
+                )
+            default:
+                Lint.Driver.Error.resolutionFailed(description: "\(error)")
+            }
+        }
     }
-    do throws(Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>.Error) {
-      return try Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>
-        .resolve(
-          consumerPackageRoot: manifestDirectory,
-          filename: manifestFilename,
-          dependencies: dependencies,
-          defaultConfiguration: defaultConfiguration,
-          buildConfiguration: { manifest, parent in
-            configuration(from: manifest, parent: parent)
-          }
-        )
-    } catch {
-      throw switch error {
-      case .consumerLoadFailed(let cause):
-        Lint.Driver.Error.resolutionFailed(
-          description: "\(manifestFilename) in \(manifestDirectory) failed to load: \(cause)"
-        )
-      default:
-        Lint.Driver.Error.resolutionFailed(description: "\(error)")
-      }
-    }
-  }
 }
 
 extension Lint.Driver {
 
-  fileprivate static func defaultConfiguration() -> Lint.Configuration {
-    Lint.Configuration {}
-  }
-
-  internal static func configuration(
-    from manifest: Lint.Manifest,
-    parent: Lint.Configuration?
-  ) -> Lint.Configuration {
-    Lint.Configuration(
-      inheriting: parent,
-      excluded: manifest.excluded.map(Lint.Filter.Prefix.init),
-      disabled: manifest.rules.disabled
-    ) {}
-  }
-
-  fileprivate static func manifestDependencies() -> [Manifest::Manifest.Dependency]? {
-
-    guard let linterPath = Environment.read("SWIFT_LINTER_PATH") else {
-      return nil
+    fileprivate static func defaultConfiguration() -> Lint.Configuration {
+        Lint.Configuration {}
     }
 
-    let linter: File.Path
-    do throws(Paths.Path.Error) {
-      linter = try File.Path(linterPath)
-    } catch {
-      return nil
+    internal static func configuration(
+        from manifest: Lint.Manifest,
+        parent: Lint.Configuration?
+    ) -> Lint.Configuration {
+        Lint.Configuration(
+            inheriting: parent,
+            excluded: manifest.excluded.map(Lint.Filter.Prefix.init),
+            disabled: manifest.rules.disabled
+        ) {}
     }
-    return [
-      Manifest::Manifest.Dependency(
-        path: Lint.Driver.Manifest.checkout("swift-json", beside: linter).string,
-        name: "swift-json",
-        product: "JSON",
-        imports: ["JSON"]
-      ),
-      Manifest::Manifest.Dependency(
-        path: Lint.Driver.Manifest.checkout("swift-file-system", beside: linter).string,
-        name: "swift-file-system",
-        product: "File System",
-        imports: ["File_System"]
-      ),
-      Manifest::Manifest.Dependency(
-        path: linterPath,
-        name: "swift-linter",
-        product: "Linter",
-        imports: ["Linter"]
-      ),
-    ]
-  }
+
+    fileprivate static func manifestDependencies() -> [Manifest::Manifest.Dependency]? {
+
+        guard let linterPath = Environment.read("SWIFT_LINTER_PATH") else {
+            return nil
+        }
+
+        let linter: File.Path
+        do throws(Paths.Path.Error) {
+            linter = try File.Path(linterPath)
+        } catch {
+            return nil
+        }
+        return [
+            Manifest::Manifest.Dependency(
+                path: Lint.Driver.Manifest.checkout("swift-json", beside: linter).string,
+                name: "swift-json",
+                product: "JSON",
+                imports: ["JSON"]
+            ),
+            Manifest::Manifest.Dependency(
+                path: Lint.Driver.Manifest.checkout("swift-file-system", beside: linter).string,
+                name: "swift-file-system",
+                product: "File System",
+                imports: ["File_System"]
+            ),
+            Manifest::Manifest.Dependency(
+                path: linterPath,
+                name: "swift-linter",
+                product: "Linter",
+                imports: ["Linter"]
+            ),
+        ]
+    }
 }

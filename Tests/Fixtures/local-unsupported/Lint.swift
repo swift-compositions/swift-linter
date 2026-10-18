@@ -2,5 +2,5 @@
 import Linter
 
 Lint.run(dependencies: []) {
-  []
+    []
 }
