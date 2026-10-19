@@ -628,7 +628,7 @@
       "location" : "https://github.com/swift-compositions/swift-institute-linter-rules.git",
       "state" : {
         "branch" : "main",
-        "revision" : "0568deb9ee0e25e210fa3466b90d4c9ad1c4725b"
+        "revision" : "ea124aba61186c4eacb812a997932bb8d8689fee"
       }
     },
     {
@@ -1357,7 +1357,7 @@
       "location" : "https://github.com/swift-standards/swift-spm-standard.git",
       "state" : {
         "branch" : "main",
-        "revision" : "d3cd5fb280c573617d541faf901bd9228d45a32f"
+        "revision" : "3b81e29da981964effb4a330ed7814c01969ca5f"
       }
     },
     {
