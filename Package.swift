@@ -92,7 +92,7 @@ let package = Package(
             branch: "main"
         ),
         .package(url: "https://github.com/swift-compositions/swift-process.git", branch: "main"),
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", "603.0.2"..<"604.0.0"),
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", "604.0.0"..<"605.0.0"),
         .package(
             url: "https://github.com/apple/swift-argument-parser.git",
             .upToNextMajor(from: "1.5.0")
