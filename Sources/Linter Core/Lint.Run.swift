@@ -141,7 +141,7 @@ extension Lint.Run {
                     tree: tree,
                     converter: converter,
                     types: Lint.Brand.types(in: tree),
-                    index: Self.controlIndex(tree: tree, license: control.license)
+                    index: Self.controlIndex(tree: tree, path: path, license: control.license, files: control.files)
                 )
                 let severity = entry.severity ?? entry.rule.severity.default
                 let observation = entry.rule.observe(parsed, severity)
@@ -237,9 +237,14 @@ extension Lint.Run {
 
     fileprivate static func controlIndex(
         tree: SourceFileSyntax,
-        license: Lint.Source.Index.License
+        path: Swift.String,
+        license: Lint.Source.Index.License,
+        files: [Swift.String: Swift.String]
     ) -> Lint.Source.Index {
-        var index = Lint.Source.Index.collect(from: tree)
+        var index = Lint.Source.Index.collect(from: tree, path: path)
+        for (path, source) in files {
+            index.merge(.collect(from: Parser.parse(source: source), path: path))
+        }
         index.license = license
         return index
     }
@@ -298,7 +303,7 @@ extension Lint.Run {
                 guard let text = Swift.String(validating: bytes, as: UTF8.self) else { continue }
                 let tree = Parser.parse(source: text)
                 names.formUnion(Lint.Brand.types(in: tree))
-                index.merge(.collect(from: tree))
+                index.merge(.collect(from: tree, path: sourcePath.underlying))
             }
         }
         return (names, index)

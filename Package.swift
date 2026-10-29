@@ -82,7 +82,7 @@ let package = Package(
         .package(url: "https://github.com/swift-standards/swift-spm-standard.git", branch: "main"),
         .package(url: "https://github.com/swift-standards/swift-uri-standard.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-environment.git", branch: "main"),
-        .package(url: "https://github.com/swift-compositions/swift-file-system.git", branch: "main"),
+        .package(url: "https://github.com/swift-compositions/swift-file-system.git", branch: "main", traits: ["Glob"]),
         .package(url: "https://github.com/swift-compositions/swift-json.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-kernel.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-manifests.git", branch: "main"),
