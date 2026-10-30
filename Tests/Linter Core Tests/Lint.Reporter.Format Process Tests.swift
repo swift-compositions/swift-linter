@@ -105,6 +105,12 @@ import Testing
             "\(root())/Tests/Fixtures/\(name)"
         }
 
+        fileprivate static func discardScratch(of name: Swift.String) {
+            _ = try? Process.Spawn.run(
+                .init(executable: "/bin/rm", arguments: ["-rf", "\(fixture(name))/.swift-manifest"])
+            )
+        }
+
         fileprivate static func environment(
             format: Swift.String? = nil,
             policy: Swift.String? = nil,
@@ -487,6 +493,7 @@ import Testing
                 )
                 return
             }
+            defer { Lint.Reporter.Format.Test.Executable.discardScratch(of: "manifest-unresolvable") }
             guard
                 let output = Lint.Reporter.Format.Test.Executable.run(
                     cli,
@@ -520,6 +527,7 @@ import Testing
                 )
                 return
             }
+            defer { Lint.Reporter.Format.Test.Executable.discardScratch(of: "manifest-unresolvable") }
             guard
                 let output = Lint.Reporter.Format.Test.Executable.run(
                     cli,
