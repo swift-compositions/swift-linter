@@ -10,19 +10,29 @@ extension Lint.File.Single {
 
 extension Lint.File.Single.Classifier {
 
-    fileprivate static func bakedBundle(matching expression: ExprSyntax) -> Lint.Rule.Bundle.Baked? {
-        guard expression.as(MemberAccessExprSyntax.self) != nil else { return nil }
-        let text: Swift.String = expression.trimmedDescription
-        return Lint.Rule.Bundle.Baked.allCases.first { $0.expression == text }
+    fileprivate static func bakedBundle(
+        matching expression: ExprSyntax,
+        in baked: Swift.Set<Lint.Rule.Bundle.Baked>?
+    ) -> Lint.Rule.Bundle.Baked? {
+        guard let member: MemberAccessExprSyntax = expression.as(MemberAccessExprSyntax.self),
+            member.base?.trimmedDescription == "Lint.Rule.Bundle"
+        else { return nil }
+        let candidate = Lint.Rule.Bundle.Baked(member.declName.baseName.text)
+        guard let baked else { return candidate }
+        return baked.contains(candidate) ? candidate : nil
     }
 
-    public static func classify(source: Swift.String) -> Lint.File.Single.Classification {
-        Self.classify(source: source, parsed: Parser.parse(source: source))
+    public static func classify(
+        source: Swift.String,
+        baked: Swift.Set<Lint.Rule.Bundle.Baked>?
+    ) -> Lint.File.Single.Classification {
+        Self.classify(source: source, parsed: Parser.parse(source: source), baked: baked)
     }
 
     internal static func classify(
         source: Swift.String,
-        parsed sourceFile: SourceFileSyntax
+        parsed sourceFile: SourceFileSyntax,
+        baked: Swift.Set<Lint.Rule.Bundle.Baked>?
     ) -> Lint.File.Single.Classification {
 
         if Manifest::Manifest.Parent.scan(in: source) != nil {
@@ -44,22 +54,23 @@ extension Lint.File.Single.Classifier {
             return .evalFallback(reason: "rule closure is not a single expression")
         }
 
-        if let bundle: Lint.Rule.Bundle.Baked = Self.bakedBundle(matching: expression) {
+        if let bundle: Lint.Rule.Bundle.Baked = Self.bakedBundle(matching: expression, in: baked) {
             return .fastPathStandardBundle(bundle: bundle)
         }
 
         if let (bundle, disabled): (Lint.Rule.Bundle.Baked, Swift.Set<Lint.Rule.ID>) =
-            Self.bakedBundleExclusions(expression)
+            Self.bakedBundleExclusions(expression, in: baked)
         {
             return .fastPathStandardBundleExcluding(bundle: bundle, disabled: disabled)
         }
         return .evalFallback(
-            reason: "rule closure is not a baked standard bundle nor `.excluding(rules:)` over one"
+            reason: "rule closure is not a bundle the runner bakes nor `.excluding(rules:)` over one"
         )
     }
 
     fileprivate static func bakedBundleExclusions(
-        _ expression: ExprSyntax
+        _ expression: ExprSyntax,
+        in baked: Swift.Set<Lint.Rule.Bundle.Baked>?
     ) -> (bundle: Lint.Rule.Bundle.Baked, disabled: Swift.Set<Lint.Rule.ID>)? {
         guard let call: FunctionCallExprSyntax = expression.as(FunctionCallExprSyntax.self),
             let member: MemberAccessExprSyntax = call.calledExpression.as(
@@ -67,7 +78,7 @@ extension Lint.File.Single.Classifier {
             ),
             member.declName.baseName.text == "excluding",
             let base: ExprSyntax = member.base,
-            let bundle: Lint.Rule.Bundle.Baked = Self.bakedBundle(matching: base)
+            let bundle: Lint.Rule.Bundle.Baked = Self.bakedBundle(matching: base, in: baked)
         else {
             return nil
         }

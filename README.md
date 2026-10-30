@@ -84,8 +84,7 @@ express.
    single Swift file at the package root declaring tools-version,
    rule-pack dependencies, and the active rule set via
    `Lint.run(dependencies:) { ... }`. Covers the common case of
-   activating an institute-published bundle
-   (`Lint.Rule.Bundle.universal` / `.institute` / `.primitives`),
+   activating a published bundle such as `Lint.Rule.Bundle.universal`,
    optionally narrowed via `.excluding(rules:)` for brand-owner
    subtractions. No nested SwiftPM resolution; one file, one parse.
 
@@ -95,7 +94,7 @@ express.
    directly via the result-builder DSL. Required when the consumer
    needs in-house custom rules (arbitrary Swift code defining new
    `Lint.Rule` instances), third-party rule packs not declared in any
-   institute bundle, or per-rule programmatic configuration with
+   published bundle, or per-rule programmatic configuration with
    constructor calls that take consumer-side domain values.
 
 Both shapes produce the same `Lint.Configuration` at runtime — see
@@ -121,16 +120,16 @@ with the activated bundle in the trailing closure:
 // (Apache-2.0 license header)
 
 import Linter
-import Linter_Institute_Rules
+import Linter_Rules
 
 Lint.run(dependencies: [
     .package(
-        url: "https://github.com/swift-compositions/swift-institute-linter-rules.git",
+        url: "https://github.com/swift-compositions/swift-linter-rules.git",
         branch: "main",
-        products: ["Linter Institute Rules"]
+        products: ["Linter Rules"]
     ),
 ]) {
-    Lint.Rule.Bundle.institute
+    Lint.Rule.Bundle.universal
 }
 ```
 
@@ -138,20 +137,17 @@ Lint.run(dependencies: [
 be the first line — it informs the engine which DSL version the file
 targets, mirroring SwiftPM's `swift-tools-version` discipline.
 
-**Bundle selection**: activate the bundle matching your package's layer
-in the four-layer architecture — `Lint.Rule.Bundle.universal` for
-universal Swift code, `.institute` for L3/L4 standards and compositions,
-and `.primitives` for L1/L2 atoms and molecules. The bundles compose additively
-(`institute = universal + institute-pack`; `primitives = institute +
-primitives-pack`), so activating a higher-tier bundle transitively
-activates the lower tiers' rules.
+**Bundle selection**: name one bundle, `Lint.Rule.Bundle.<name>`. When
+`SWIFT_LINTER_RUNNER` names a prebuilt runner and that runner's
+`--inventory` lists the bundle, the file is linted by the runner without
+compiling anything; otherwise the file is compiled as a package.
 
 **Brand-owner exclusions**: brand-owner packages (those whose primary
 export is a typed primitive whose rules target external consumers'
 access to the brand) narrow the bundle via `.excluding(rules:)`:
 
 ```swift
-Lint.Rule.Bundle.primitives.excluding(rules: [
+Lint.Rule.Bundle.universal.excluding(rules: [
     Lint.Rule.`raw value access`.id,
     Lint.Rule.`unchecked call site`.id,
     // ...
@@ -172,7 +168,7 @@ Adopt the nested-package shape ONLY when one of these triggers applies:
 | Trigger | Why `Lint.swift` cannot express it |
 |---|---|
 | In-house custom rules (Swift code defining new `Lint.Rule` instances) | Custom rules need a SwiftPM compilation unit; a single-file `Lint.swift` parses but does not compile arbitrary rule code |
-| Third-party rule packs not declared in any institute bundle | Activating a non-institute rule pack requires declaring it as a SwiftPM dependency and importing its module — needs `Package.swift` |
+| Third-party rule packs not declared in any published bundle | Activating another rule pack requires declaring it as a SwiftPM dependency and importing its module — needs `Package.swift` |
 | Per-rule programmatic configuration with constructor calls | The `Lint.Configuration { Lint.Rule.Configuration.enable(...) }` DSL accepts rule constructor calls with consumer-side domain values; the bundle DSL is metatype-driven |
 
 If none of these triggers apply, use `Lint.swift` instead.
@@ -269,7 +265,7 @@ is deliberate:
 
 - The single-file shape minimizes consumer-side setup cost (one file,
   one parse, no nested SwiftPM resolution) for the common case of
-  activating an institute bundle with optional brand-owner exclusions.
+  activating a published bundle with optional brand-owner exclusions.
 - The nested-package shape exposes the full power of the typed DSL
   (custom rule types, third-party rule packs, programmatic per-rule
   configuration) for cases the single-file cannot express.
@@ -290,16 +286,16 @@ a URL. Place the directive in the first 30 lines of `Lint.swift` (or
 // parent: https://raw.githubusercontent.com/<your-org>/.github/main/Lint.swift
 
 import Linter
-import Linter_Institute_Rules
+import Linter_Rules
 
 Lint.run(dependencies: [
     .package(
-        url: "https://github.com/swift-compositions/swift-institute-linter-rules.git",
+        url: "https://github.com/swift-compositions/swift-linter-rules.git",
         branch: "main",
-        products: ["Linter Institute Rules"]
+        products: ["Linter Rules"]
     ),
 ]) {
-    Lint.Rule.Bundle.institute
+    Lint.Rule.Bundle.universal
 }
 ```
 

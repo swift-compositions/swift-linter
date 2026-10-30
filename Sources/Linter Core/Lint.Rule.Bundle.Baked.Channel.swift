@@ -13,9 +13,9 @@ extension Lint.Rule.Bundle.Baked.Channel {
         guard let raw: Swift.String = Environment.read(Self.variable) else {
             return nil
         }
-        guard let bundle: Lint.Rule.Bundle.Baked = Lint.Rule.Bundle.Baked(rawValue: raw) else {
+        guard !raw.isEmpty else {
             throw .invalid(value: raw)
         }
-        return bundle
+        return Lint.Rule.Bundle.Baked(raw)
     }
 }

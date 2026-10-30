@@ -20,8 +20,8 @@ extension Lint.Run.Command.Test.Unit {
     @Test
     func `profile with a profile and a path is the profile command`() throws {
         #expect(
-            try Lint.Run.Command.parse(["--profile", "institute.json", "/tmp/empty"])
-                == .profile(path: "institute.json", paths: ["/tmp/empty"])
+            try Lint.Run.Command.parse(["--profile", "gamma.json", "/tmp/empty"])
+                == .profile(path: "gamma.json", paths: ["/tmp/empty"])
         )
     }
 
@@ -36,7 +36,7 @@ extension Lint.Run.Command.Test.Unit {
     @Test
     func `profile-check is rejected as an unknown option before any linting`() {
         #expect(throws: Lint.Run.Command.Error.unknownOption("--profile-check")) {
-            try Lint.Run.Command.parse(["--profile-check", "institute.json"])
+            try Lint.Run.Command.parse(["--profile-check", "gamma.json"])
         }
     }
 
@@ -61,7 +61,7 @@ extension Lint.Run.Command.Test.`Edge Case` {
                 "profile invocation requires --profile <profile.json> <path> ..."
             )
         ) {
-            try Lint.Run.Command.parse(["--profile", "institute.json"])
+            try Lint.Run.Command.parse(["--profile", "gamma.json"])
         }
     }
 

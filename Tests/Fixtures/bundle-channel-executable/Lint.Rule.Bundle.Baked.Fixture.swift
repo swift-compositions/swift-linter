@@ -1,12 +1,12 @@
 import Linter
 
 extension Lint.Rule {
-    fileprivate static let `bundle fixture primitives` = Lint.Rule(
-        id: "bundle fixture primitives",
+    fileprivate static let `bundle fixture alpha` = Lint.Rule(
+        id: "bundle fixture alpha",
         default: .error,
         controls: [
             .init(
-                id: "bundle fixture primitives positive",
+                id: "bundle fixture alpha positive",
                 source: "let value = 0",
                 path: "Controls/Fixture.swift",
                 expectation: .findings(1)
@@ -22,19 +22,19 @@ extension Lint.Rule {
                         column: 1
                     ),
                     severity: severity,
-                    identifier: "bundle fixture primitives",
-                    message: "primitives bundle fired"
+                    identifier: "bundle fixture alpha",
+                    message: "alpha bundle fired"
                 )
             ]
         }
     )
 
-    fileprivate static let `bundle fixture standards` = Lint.Rule(
-        id: "bundle fixture standards",
+    fileprivate static let `bundle fixture beta` = Lint.Rule(
+        id: "bundle fixture beta",
         default: .error,
         controls: [
             .init(
-                id: "bundle fixture standards positive",
+                id: "bundle fixture beta positive",
                 source: "let value = 0",
                 path: "Controls/Fixture.swift",
                 expectation: .findings(1)
@@ -50,19 +50,19 @@ extension Lint.Rule {
                         column: 1
                     ),
                     severity: severity,
-                    identifier: "bundle fixture standards",
-                    message: "standards bundle fired"
+                    identifier: "bundle fixture beta",
+                    message: "beta bundle fired"
                 )
             ]
         }
     )
 
-    fileprivate static let `bundle fixture institute` = Lint.Rule(
-        id: "bundle fixture institute",
+    fileprivate static let `bundle fixture gamma` = Lint.Rule(
+        id: "bundle fixture gamma",
         default: .error,
         controls: [
             .init(
-                id: "bundle fixture institute positive",
+                id: "bundle fixture gamma positive",
                 source: "let value = 0",
                 path: "Controls/Fixture.swift",
                 expectation: .findings(1)
@@ -78,8 +78,8 @@ extension Lint.Rule {
                         column: 1
                     ),
                     severity: severity,
-                    identifier: "bundle fixture institute",
-                    message: "institute bundle fired"
+                    identifier: "bundle fixture gamma",
+                    message: "gamma bundle fired"
                 )
             ]
         }
@@ -87,7 +87,7 @@ extension Lint.Rule {
 }
 
 Lint.run(bundles: [
-    .primitives: [.enable(.`bundle fixture primitives`)],
-    .standards: [.enable(.`bundle fixture standards`)],
-    .institute: [.enable(.`bundle fixture institute`)],
+    "alpha": [.enable(.`bundle fixture alpha`)],
+    "beta": [.enable(.`bundle fixture beta`)],
+    "gamma": [.enable(.`bundle fixture gamma`)],
 ])

@@ -215,36 +215,36 @@ import Testing
                 let output = Executable.run(
                     runner,
                     arguments: [Executable.fixture("report-format-direct")],
-                    environment: Executable.environment(bundle: "standards")
+                    environment: Executable.environment(bundle: "beta")
                 )
             else { return }
             #expect(output.status != .exited(code: 0))
             let stderr = Executable.stderr(output)
             #expect(stderr.contains("bundle channel"))
-            #expect(stderr.contains("standards"))
+            #expect(stderr.contains("beta"))
         }
 
         @Test
-        func `primitives selects exactly the primitives bundle`() {
+        func `alpha selects exactly the alpha bundle`() {
             assertSelectsExactlyOwnBundle(
-                token: "primitives",
-                identifier: "bundle fixture primitives"
+                token: "alpha",
+                identifier: "bundle fixture alpha"
             )
         }
 
         @Test
-        func `standards selects exactly the standards bundle`() {
+        func `beta selects exactly the beta bundle`() {
             assertSelectsExactlyOwnBundle(
-                token: "standards",
-                identifier: "bundle fixture standards"
+                token: "beta",
+                identifier: "bundle fixture beta"
             )
         }
 
         @Test
-        func `institute selects exactly the institute bundle`() {
+        func `gamma selects exactly the gamma bundle`() {
             assertSelectsExactlyOwnBundle(
-                token: "institute",
-                identifier: "bundle fixture institute"
+                token: "gamma",
+                identifier: "bundle fixture gamma"
             )
         }
 
@@ -272,7 +272,7 @@ import Testing
             let stderr = Executable.stderr(output)
 
             #expect(stdout.contains(identifier))
-            for other in ["primitives", "standards", "institute"] where other != token {
+            for other in ["alpha", "beta", "gamma"] where other != token {
                 #expect(!stdout.contains("bundle fixture \(other)"))
             }
 
@@ -298,7 +298,7 @@ import Testing
                 let output = Executable.run(
                     runner,
                     arguments: [Executable.fixture("report-format-direct")],
-                    environment: Executable.environment(bundle: "primitives")
+                    environment: Executable.environment(bundle: "alpha")
                 )
             else { return }
 
@@ -325,54 +325,54 @@ import Testing
             return Executable.run(runner, arguments: arguments, environment: Executable.environment(bundle: bundle))
         }
 
-        private var primitivesProfile: Swift.String {
-            Executable.fixture("bundle-channel-profiles/primitives.json")
+        private var alphaProfile: Swift.String {
+            Executable.fixture("bundle-channel-profiles/alpha.json")
         }
 
         @Test
         func `A valid profile for another bundle than the requested one exits nonzero before linting`() {
             guard
                 let output = runPopulated(
-                    ["--profile", primitivesProfile, Executable.fixture("report-format-direct")],
-                    bundle: "institute"
+                    ["--profile", alphaProfile, Executable.fixture("report-format-direct")],
+                    bundle: "gamma"
                 )
             else { return }
             #expect(output.status != .exited(code: 0))
-            #expect(Executable.stderr(output).contains("profile bundle primitives does not match requested bundle institute"))
-            #expect(!Executable.stdout(output).contains("bundle fixture primitives"))
+            #expect(Executable.stderr(output).contains("profile bundle alpha does not match requested bundle gamma"))
+            #expect(!Executable.stdout(output).contains("bundle fixture alpha"))
         }
 
         @Test
         func `A profile for the requested bundle lints with exactly that bundle`() {
             guard
                 let output = runPopulated(
-                    ["--profile", primitivesProfile, Executable.fixture("report-format-direct")],
-                    bundle: "primitives"
+                    ["--profile", alphaProfile, Executable.fixture("report-format-direct")],
+                    bundle: "alpha"
                 )
             else { return }
-            #expect(Executable.stderr(output).contains("profile bundle: primitives"))
-            #expect(Executable.stdout(output).contains("bundle fixture primitives"))
-            #expect(!Executable.stdout(output).contains("bundle fixture institute"))
+            #expect(Executable.stderr(output).contains("profile bundle: alpha"))
+            #expect(Executable.stdout(output).contains("bundle fixture alpha"))
+            #expect(!Executable.stdout(output).contains("bundle fixture gamma"))
         }
 
         @Test
         func `An unbound profile run reports the bundle it selected`() {
             guard
                 let output = runPopulated(
-                    ["--profile", primitivesProfile, Executable.fixture("report-format-direct")],
+                    ["--profile", alphaProfile, Executable.fixture("report-format-direct")],
                     bundle: nil
                 )
             else { return }
-            #expect(Executable.stderr(output).contains("profile bundle: primitives"))
-            #expect(Executable.stdout(output).contains("bundle fixture primitives"))
+            #expect(Executable.stderr(output).contains("profile bundle: alpha"))
+            #expect(Executable.stdout(output).contains("bundle fixture alpha"))
         }
 
         @Test
         func `An unknown leading option exits nonzero before linting`() {
             guard
                 let output = runPopulated(
-                    ["--profile-check", primitivesProfile],
-                    bundle: "institute"
+                    ["--profile-check", alphaProfile],
+                    bundle: "gamma"
                 )
             else { return }
             #expect(output.status != .exited(code: 0))
@@ -382,7 +382,7 @@ import Testing
 
         @Test
         func `An invalid path argument exits nonzero`() {
-            guard let output = runPopulated([""], bundle: "institute") else { return }
+            guard let output = runPopulated([""], bundle: "gamma") else { return }
             #expect(output.status != .exited(code: 0))
             #expect(Executable.stderr(output).contains("invalid path argument"))
         }

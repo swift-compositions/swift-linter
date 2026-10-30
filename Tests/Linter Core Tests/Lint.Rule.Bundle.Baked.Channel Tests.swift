@@ -48,9 +48,9 @@ extension Lint.Rule.Bundle.Baked.Channel.Test {
     }
 
     @Test
-    func `vocabulary round trips`() {
-        for bundle in Lint.Rule.Bundle.Baked.allCases {
-            withVariable(bundle.rawValue) {
+    func `any name round trips`() {
+        for bundle: Lint.Rule.Bundle.Baked in ["alpha", "beta", "universal"] {
+            withVariable(bundle.token) {
                 do throws(Lint.Rule.Bundle.Baked.Channel.Error) {
                     let decoded = try Lint.Rule.Bundle.Baked.Channel.read()
                     #expect(decoded == bundle)
@@ -62,18 +62,16 @@ extension Lint.Rule.Bundle.Baked.Channel.Test {
     }
 
     @Test
-    func `invalid value throws`() {
-        withVariable("universal") {
-            #expect(throws: Lint.Rule.Bundle.Baked.Channel.Error.invalid(value: "universal")) {
+    func `empty value throws`() {
+        withVariable("") {
+            #expect(throws: Lint.Rule.Bundle.Baked.Channel.Error.invalid(value: "")) {
                 try Lint.Rule.Bundle.Baked.Channel.read()
             }
         }
     }
 
     @Test
-    func `expressions match accessors`() {
-        #expect(Lint.Rule.Bundle.Baked.primitives.expression == "Lint.Rule.Bundle.primitives")
-        #expect(Lint.Rule.Bundle.Baked.standards.expression == "Lint.Rule.Bundle.standards")
-        #expect(Lint.Rule.Bundle.Baked.institute.expression == "Lint.Rule.Bundle.institute")
+    func `expression names the bundle accessor`() {
+        #expect(Lint.Rule.Bundle.Baked("alpha").expression == "Lint.Rule.Bundle.alpha")
     }
 }

@@ -9,5 +9,5 @@ extension Lint.Rule {
 }
 
 Lint.run(bundles: [
-    .primitives: [.enable(.`report format invalid fixture`)]
+    "alpha": [.enable(.`report format invalid fixture`)]
 ])

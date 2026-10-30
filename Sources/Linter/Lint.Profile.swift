@@ -111,9 +111,10 @@ extension Lint.Profile {
             }
         } catch { throw .malformed("\(error)") }
         guard decodedSchema == Self.schema else { throw .schema(decodedSchema) }
-        guard let baked = Lint.Rule.Bundle.Baked(rawValue: decodedBundle) else {
+        guard !decodedBundle.isEmpty else {
             throw .bundle(decodedBundle)
         }
+        let baked = Lint.Rule.Bundle.Baked(decodedBundle)
         var ruleIDs: [Lint.Rule.ID] = []
         ruleIDs.reserveCapacity(decodedRules.count)
         for rule in decodedRules { ruleIDs.append(Lint.Rule.ID(rule)) }

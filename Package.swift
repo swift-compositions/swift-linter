@@ -32,15 +32,8 @@ let package = Package(
             name: "swift-linter",
             targets: ["Linter CLI"]
         ),
-        .executable(
-            name: "swift-linter-runner",
-            targets: ["Linter Runner"]
-        ),
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-compositions/swift-institute-linter-rules.git", branch: "main"),
-        .package(url: "https://github.com/swift-molecules/swift-primitives-linter-rules.git", branch: "main"),
-        .package(url: "https://github.com/swift-standards/swift-standards-linter-rules.git", branch: "main"),
         .package(
             url: "https://github.com/swift-atoms/swift-ascii.git",
             branch: "main"
@@ -159,6 +152,7 @@ let package = Package(
                 .product(name: "Package", package: "swift-package"),
                 .product(name: "Environment", package: "swift-environment"),
                 .product(name: "File System", package: "swift-file-system"),
+                .product(name: "JSON", package: "swift-json"),
                 .product(name: "Manifest Executable", package: "swift-manifests"),
                 .product(name: "Manifest Loader", package: "swift-manifests"),
                 .product(name: "Manifest Resolver", package: "swift-manifests"),
@@ -194,15 +188,6 @@ let package = Package(
                     name: "Version",
                     package: "swift-version"
                 ),
-            ]
-        ),
-        .executableTarget(
-            name: "Linter Runner",
-            dependencies: [
-                .target(name: "Linter"),
-                .product(name: "Linter Institute Rules", package: "swift-institute-linter-rules"),
-                .product(name: "Linter Primitives Rules", package: "swift-primitives-linter-rules"),
-                .product(name: "Linter Standards Rules", package: "swift-standards-linter-rules"),
             ]
         ),
         .executableTarget(

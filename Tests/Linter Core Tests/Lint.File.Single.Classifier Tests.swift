@@ -14,6 +14,8 @@ extension Lint.File.Single.Classifier {
 
 extension Lint.File.Single.Classifier.Test {
 
+    private static let baked: Swift.Set<Lint.Rule.Bundle.Baked> = ["alpha", "beta", "gamma"]
+
     private func isEvalFallback(_ classification: Lint.File.Single.Classification) -> Swift.Bool {
         if case .evalFallback = classification { return true }
         return false
@@ -29,40 +31,40 @@ extension Lint.File.Single.Classifier.Test {
     }
 
     @Test
-    func `Bare primitives bundle in a trailing closure is the fast path`() {
+    func `Bare alpha bundle in a trailing closure is the fast path`() {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives
+                Lint.Rule.Bundle.alpha
             }
             """
         #expect(
-            Lint.File.Single.Classifier.classify(source: source)
-                == .fastPathStandardBundle(bundle: .primitives)
+            Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)
+                == .fastPathStandardBundle(bundle: "alpha")
         )
     }
 
     @Test
-    func `Bare primitives bundle in a rules-labelled closure is the fast path`() {
+    func `Bare alpha bundle in a rules-labelled closure is the fast path`() {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ], rules: {
-                Lint.Rule.Bundle.primitives
+                Lint.Rule.Bundle.alpha
             })
             """
         #expect(
-            Lint.File.Single.Classifier.classify(source: source)
-                == .fastPathStandardBundle(bundle: .primitives)
+            Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)
+                == .fastPathStandardBundle(bundle: "alpha")
         )
     }
 
@@ -72,12 +74,12 @@ extension Lint.File.Single.Classifier.Test {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives.excluding(rules: [
+                Lint.Rule.Bundle.alpha.excluding(rules: [
                     "raw value access",
                     "chained rawvalue access",
                     "int public parameter",
@@ -90,7 +92,7 @@ extension Lint.File.Single.Classifier.Test {
             "pointer advanced by",
         ]
         #expect(
-            excluded(Lint.File.Single.Classifier.classify(source: source))?.disabled == expected
+            excluded(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked))?.disabled == expected
         )
     }
 
@@ -100,13 +102,13 @@ extension Lint.File.Single.Classifier.Test {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
-            import Primitives_Linter_Rule_RawValue
+            import Fixture_Rules
+            import Fixture_Rule_RawValue
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives.excluding(rules: [
+                Lint.Rule.Bundle.alpha.excluding(rules: [
                     Lint.Rule.`raw value access`.id,
                     Lint.Rule.`chained rawvalue access`.id,
                     Lint.Rule.`unchecked call site`.id,
@@ -117,7 +119,7 @@ extension Lint.File.Single.Classifier.Test {
             "raw value access", "chained rawvalue access", "unchecked call site",
         ]
         #expect(
-            excluded(Lint.File.Single.Classifier.classify(source: source))?.disabled == expected
+            excluded(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked))?.disabled == expected
         )
     }
 
@@ -126,12 +128,12 @@ extension Lint.File.Single.Classifier.Test {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives.excluding(rules: [
+                Lint.Rule.Bundle.alpha.excluding(rules: [
                     "raw value access",
                     Lint.Rule.`pointer advanced by`.id,
                 ])
@@ -139,7 +141,7 @@ extension Lint.File.Single.Classifier.Test {
             """
         let expected: Swift.Set<Lint.Rule.ID> = ["raw value access", "pointer advanced by"]
         #expect(
-            excluded(Lint.File.Single.Classifier.classify(source: source))?.disabled == expected
+            excluded(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked))?.disabled == expected
         )
     }
 
@@ -149,18 +151,18 @@ extension Lint.File.Single.Classifier.Test {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives.excluding(rules: [
+                Lint.Rule.Bundle.alpha.excluding(rules: [
                     "raw value access",
                     someComputedRuleID(),
                 ])
             }
             """
-        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source)))
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)))
     }
 
     @Test
@@ -168,15 +170,15 @@ extension Lint.File.Single.Classifier.Test {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives.excluding(rules: [])
+                Lint.Rule.Bundle.alpha.excluding(rules: [])
             }
             """
-        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source)))
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)))
     }
 
     @Test
@@ -185,7 +187,7 @@ extension Lint.File.Single.Classifier.Test {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
             import SwiftSyntax
 
             extension Lint.Rule {
@@ -197,91 +199,91 @@ extension Lint.File.Single.Classifier.Test {
             }
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives.excluding(rules: [Lint.Rule.`int public parameter`.id])
+                Lint.Rule.Bundle.alpha.excluding(rules: [Lint.Rule.`int public parameter`.id])
                 Lint.Rule.Configuration.enable(.`sli public carrier import`)
             }
             """
-        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source)))
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)))
     }
 
     @Test
-    func `Bare standards bundle is the fast path with the standards token`() {
+    func `Bare beta bundle is the fast path with the beta token`() {
 
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Standards_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(url: "https://github.com/swift-standards/swift-standards-linter-rules.git", branch: "main", products: ["Linter Standards Rules"])
+                .package(url: "https://github.com/swift-beta/swift-beta-linter-rules.git", branch: "main", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.standards
+                Lint.Rule.Bundle.beta
             }
             """
         #expect(
-            Lint.File.Single.Classifier.classify(source: source)
-                == .fastPathStandardBundle(bundle: .standards)
+            Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)
+                == .fastPathStandardBundle(bundle: "beta")
         )
     }
 
     @Test
-    func `Bare institute bundle is the fast path with the institute token`() {
+    func `Bare gamma bundle is the fast path with the gamma token`() {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Institute_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../../swift-compositions/swift-institute-linter-rules", products: ["Linter Institute Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.institute
+                Lint.Rule.Bundle.gamma
             }
             """
         #expect(
-            Lint.File.Single.Classifier.classify(source: source)
-                == .fastPathStandardBundle(bundle: .institute)
+            Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)
+                == .fastPathStandardBundle(bundle: "gamma")
         )
     }
 
     @Test
-    func `Standards bundle with exclusions carries the standards token`() {
+    func `Beta bundle with exclusions carries the beta token`() {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Standards_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(url: "https://github.com/swift-standards/swift-standards-linter-rules.git", branch: "main", products: ["Linter Standards Rules"])
+                .package(url: "https://github.com/swift-beta/swift-beta-linter-rules.git", branch: "main", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.standards.excluding(rules: [
+                Lint.Rule.Bundle.beta.excluding(rules: [
                     "raw value access",
                 ])
             }
             """
-        let result = excluded(Lint.File.Single.Classifier.classify(source: source))
-        #expect(result?.bundle == .standards)
+        let result = excluded(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked))
+        #expect(result?.bundle == "beta")
         #expect(result?.disabled == ["raw value access"])
     }
 
     @Test
-    func `Institute bundle with exclusions carries the institute token`() {
+    func `Gamma bundle with exclusions carries the gamma token`() {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Institute_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../../swift-compositions/swift-institute-linter-rules", products: ["Linter Institute Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.institute.excluding(rules: [
+                Lint.Rule.Bundle.gamma.excluding(rules: [
                     Lint.Rule.`raw value access`.id,
                 ])
             }
             """
-        let result = excluded(Lint.File.Single.Classifier.classify(source: source))
-        #expect(result?.bundle == .institute)
+        let result = excluded(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked))
+        #expect(result?.bundle == "gamma")
         #expect(result?.disabled == ["raw value access"])
     }
 
@@ -299,7 +301,7 @@ extension Lint.File.Single.Classifier.Test {
                 Lint.Rule.Bundle.universal
             }
             """
-        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source)))
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)))
     }
 
     @Test
@@ -315,7 +317,7 @@ extension Lint.File.Single.Classifier.Test {
                 Lint.Rule.Bundle.universal.excluding(rules: ["raw value access"])
             }
             """
-        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source)))
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)))
     }
 
     @Test
@@ -323,17 +325,17 @@ extension Lint.File.Single.Classifier.Test {
 
         let source = """
             // swift-linter-tools-version: 0.1
-            // parent: https://github.com/swift-molecules/swift-primitives-linter-rules.git
+            // parent: https://github.com/swift-molecules/swift-fixture-linter-rules.git
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives
+                Lint.Rule.Bundle.alpha
             }
             """
-        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source)))
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)))
     }
 
     @Test
@@ -342,17 +344,17 @@ extension Lint.File.Single.Classifier.Test {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives  // not a // parent: directive, just prose
+                Lint.Rule.Bundle.alpha  // not a // parent: directive, just prose
             }
             """
         #expect(
-            Lint.File.Single.Classifier.classify(source: source)
-                == .fastPathStandardBundle(bundle: .primitives)
+            Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)
+                == .fastPathStandardBundle(bundle: "alpha")
         )
     }
 
@@ -363,7 +365,7 @@ extension Lint.File.Single.Classifier.Test {
             import Linter
             let manifest: Lint.Manifest = Lint.Manifest()
             """
-        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source)))
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)))
     }
 
     @Test
@@ -372,15 +374,50 @@ extension Lint.File.Single.Classifier.Test {
         let source = """
             // swift-linter-tools-version: 0.1
             import Linter
-            import Linter_Primitives_Rules
+            import Fixture_Rules
 
             Lint.run(dependencies: [
-                .package(path: "../swift-primitives-linter-rules", products: ["Linter Primitives Rules"])
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
             ]) {
-                Lint.Rule.Bundle.primitives
+                Lint.Rule.Bundle.alpha
                 Lint.Rule.Configuration.disable(.`raw value access`)
             }
             """
-        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source)))
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)))
+    }
+}
+
+extension Lint.File.Single.Classifier.Test {
+
+    @Test
+    func `A bundle the runner does not bake falls back to eval`() {
+        let source = """
+            // swift-linter-tools-version: 0.1
+            import Linter
+            import Fixture_Rules
+
+            Lint.run(dependencies: [
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
+            ]) {
+                Lint.Rule.Bundle.delta
+            }
+            """
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: Self.baked)))
+    }
+
+    @Test
+    func `A runner that bakes nothing routes nothing`() {
+        let source = """
+            // swift-linter-tools-version: 0.1
+            import Linter
+            import Fixture_Rules
+
+            Lint.run(dependencies: [
+                .package(path: "../swift-fixture-linter-rules", products: ["Fixture Rules"])
+            ]) {
+                Lint.Rule.Bundle.alpha
+            }
+            """
+        #expect(isEvalFallback(Lint.File.Single.Classifier.classify(source: source, baked: [])))
     }
 }

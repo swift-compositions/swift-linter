@@ -293,7 +293,7 @@ import Testing
                         Lint.Reporter.Format.Test.Executable.fixture("report-format-nested"),
                     ],
                     environment: Lint.Reporter.Format.Test.Executable.environment(
-                        bundle: Lint.Rule.Bundle.Baked.primitives.rawValue,
+                        bundle: "alpha",
                         dispatch: runner
                     )
                 )
@@ -336,7 +336,7 @@ import Testing
                     ],
                     environment: Lint.Reporter.Format.Test.Executable.environment(
                         linter: Lint.Reporter.Format.Test.Executable.root(),
-                        bundle: Lint.Rule.Bundle.Baked.primitives.rawValue,
+                        bundle: "alpha",
                         dispatch: runner
                     )
                 )
@@ -402,13 +402,13 @@ import Testing
             }
             let arguments = [Lint.Reporter.Format.Test.Executable.fixture("report-format-direct")]
 
-            let primitivesBundle = Lint.Rule.Bundle.Baked.primitives.rawValue
+            let alphaBundle = "alpha"
             guard
                 let unset = Lint.Reporter.Format.Test.Executable.run(
                     runner,
                     arguments: arguments,
                     environment: Lint.Reporter.Format.Test.Executable.environment(
-                        bundle: primitivesBundle
+                        bundle: alphaBundle
                     )
                 ),
                 let text = Lint.Reporter.Format.Test.Executable.run(
@@ -416,7 +416,7 @@ import Testing
                     arguments: arguments,
                     environment: Lint.Reporter.Format.Test.Executable.environment(
                         format: Lint.Reporter.Format.Channel.value(.text),
-                        bundle: primitivesBundle
+                        bundle: alphaBundle
                     )
                 )
             else { return }
@@ -459,7 +459,7 @@ import Testing
                     ],
                     environment: Lint.Reporter.Format.Test.Executable.environment(
                         format: "checkstyle",
-                        bundle: Lint.Rule.Bundle.Baked.primitives.rawValue
+                        bundle: "alpha"
                     )
                 )
             else { return }
@@ -562,7 +562,7 @@ import Testing
                     ],
                     environment: Lint.Reporter.Format.Test.Executable.environment(
                         format: Lint.Reporter.Format.Channel.value(.structured),
-                        bundle: Lint.Rule.Bundle.Baked.primitives.rawValue
+                        bundle: "alpha"
                     )
                 )
             else { return }
@@ -615,7 +615,7 @@ import Testing
                     ],
                     environment: Lint.Reporter.Format.Test.Executable.environment(
                         linter: Lint.Reporter.Format.Test.Executable.root(),
-                        bundle: Lint.Rule.Bundle.Baked.primitives.rawValue,
+                        bundle: "alpha",
                         dispatch: absent
                     ),
                     timeout: .seconds(60)

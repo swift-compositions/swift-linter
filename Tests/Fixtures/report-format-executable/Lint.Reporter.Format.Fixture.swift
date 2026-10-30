@@ -31,5 +31,5 @@ extension Lint.Rule {
 }
 
 Lint.run(bundles: [
-    .primitives: [.enable(.`report format fixture`)]
+    "alpha": [.enable(.`report format fixture`)]
 ])

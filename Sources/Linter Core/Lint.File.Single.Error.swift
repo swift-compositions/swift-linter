@@ -19,5 +19,7 @@ extension Lint.File.Single {
         case materializationFailed(reason: Swift.String)
 
         case spawnFailed(consumerPackageRoot: File.Path, description: Swift.String)
+
+        case inventoryFailed(binary: Swift.String, description: Swift.String)
     }
 }

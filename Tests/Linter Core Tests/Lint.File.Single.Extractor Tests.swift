@@ -76,12 +76,12 @@ extension Lint.File.Single.Extractor.Test.Name {
     @Test
     func `Sibling-package relative path uses path's own basename`() {
         let name = Lint.File.Single.Extractor.name(
-            at: "../swift-primitives-linter-rules",
+            at: "../swift-fixture-linter-rules",
             consumerPackageRoot: File.Path(
                 stringLiteral: "/workspace/swift-molecules/swift-cardinal"
             )
         )
-        #expect(name == "swift-primitives-linter-rules")
+        #expect(name == "swift-fixture-linter-rules")
     }
 
     @Test

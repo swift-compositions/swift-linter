@@ -61,7 +61,16 @@ extension Lint.File.Single {
         let parsed: SourceFileSyntax = Parser.parse(source: source)
 
         if let runnerBinary: Swift.String = localRunner ?? Environment.read("SWIFT_LINTER_RUNNER") {
-            switch Self.Classifier.classify(source: source, parsed: parsed) {
+            let candidate = Self.Classifier.classify(source: source, parsed: parsed, baked: nil)
+            let classification: Lint.File.Single.Classification
+            switch candidate {
+            case .evalFallback:
+                classification = candidate
+            case .fastPathStandardBundle, .fastPathStandardBundleExcluding:
+                let baked: Swift.Set<Lint.Rule.Bundle.Baked> = try Runner.inventory(binary: runnerBinary)
+                classification = Self.Classifier.classify(source: source, parsed: parsed, baked: baked)
+            }
+            switch classification {
             case .fastPathStandardBundle(let bundle):
                 return try Runner.run(
                     binary: runnerBinary,

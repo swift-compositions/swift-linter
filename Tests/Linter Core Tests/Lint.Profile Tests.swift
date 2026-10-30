@@ -19,7 +19,7 @@ extension Lint.Profile.Test.Unit {
         let other = Self.rule("other")
         let profile = try Lint.Profile(
             revision: "revision",
-            bundle: .institute,
+            bundle: "gamma",
             rules: [known.rule.id, other.rule.id]
         )
 
@@ -96,7 +96,7 @@ extension Lint.Profile.Test.Unit {
         )
         try File(path).write.atomic(
             """
-            {"schema":2,"revision":"revision","bundle":"institute","applicability":\(applicability),"rules":["known"]}
+            {"schema":2,"revision":"revision","bundle":"gamma","applicability":\(applicability),"rules":["known"]}
             """
         )
         return try Lint.Profile.read(at: path.description)
@@ -121,7 +121,7 @@ extension Lint.Profile.Test.`Edge Case` {
     @Test
     func `explicit profile refuses zero rules`() {
         #expect(throws: Lint.Profile.Error.self) {
-            try Lint.Profile(revision: "revision", bundle: .institute, rules: [])
+            try Lint.Profile(revision: "revision", bundle: "gamma", rules: [])
         }
     }
 
@@ -129,7 +129,7 @@ extension Lint.Profile.Test.`Edge Case` {
     func `explicit profile refuses unknown rules`() throws {
         let profile = try Lint.Profile(
             revision: "revision",
-            bundle: .institute,
+            bundle: "gamma",
             rules: [.init("unknown")]
         )
 
@@ -144,7 +144,7 @@ extension Lint.Profile.Test.`Edge Case` {
         let other = Lint.Profile.Test.Unit.rule("other")
         let profile = try Lint.Profile(
             revision: "revision",
-            bundle: .institute,
+            bundle: "gamma",
             rules: [known.rule.id]
         )
 
@@ -183,14 +183,14 @@ extension Lint.Profile.Test.Unit {
     func `a profile for another bundle than the requested one is rejected`() throws {
         let profile = try Lint.Profile(
             revision: "revision",
-            bundle: .primitives,
+            bundle: "alpha",
             rules: [Self.rule("known").rule.id]
         )
         do throws(Lint.Profile.Error) {
-            _ = try profile.bound(to: .institute)
-            Issue.record("a primitives profile was accepted for the institute bundle")
+            _ = try profile.bound(to: "gamma")
+            Issue.record("a alpha profile was accepted for the gamma bundle")
         } catch {
-            #expect("\(error)".contains("profile bundle primitives does not match requested bundle institute"))
+            #expect("\(error)".contains("profile bundle alpha does not match requested bundle gamma"))
         }
     }
 
@@ -198,19 +198,19 @@ extension Lint.Profile.Test.Unit {
     func `a profile for the requested bundle is accepted`() throws {
         let profile = try Lint.Profile(
             revision: "revision",
-            bundle: .primitives,
+            bundle: "alpha",
             rules: [Self.rule("known").rule.id]
         )
-        #expect(try profile.bound(to: .primitives).bundle == .primitives)
+        #expect(try profile.bound(to: "alpha").bundle == "alpha")
     }
 
     @Test
     func `an unrequested bundle keeps the profile's own bundle`() throws {
         let profile = try Lint.Profile(
             revision: "revision",
-            bundle: .standards,
+            bundle: "beta",
             rules: [Self.rule("known").rule.id]
         )
-        #expect(try profile.bound(to: nil).bundle == .standards)
+        #expect(try profile.bound(to: nil).bundle == "beta")
     }
 }

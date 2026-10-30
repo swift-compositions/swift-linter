@@ -51,7 +51,7 @@ extension Lint.File.Single.Test.Runner.Unit {
                 Lint.Reporter.Format.Channel.variable:
                     Lint.Reporter.Format.Channel.value(.sarif)
             ]),
-            bundle: .primitives,
+            bundle: "alpha",
             selection: nil
         )
         #expect(
@@ -67,7 +67,7 @@ extension Lint.File.Single.Test.Runner.Unit {
                 Lint.Reporter.Format.Channel.variable:
                     Lint.Reporter.Format.Channel.value(.text)
             ]),
-            bundle: .standards,
+            bundle: "beta",
             selection: nil
         )
         #expect(
@@ -80,13 +80,13 @@ extension Lint.File.Single.Test.Runner.Unit {
     func `Runner adds its bundle without dropping unrelated channels`() {
         let environment = Lint.File.Single.Runner.environment(
             inheriting: Environment.Snapshot(["SWIFT_LINTER_TEST_SENTINEL": "preserved"]),
-            bundle: .institute,
+            bundle: "gamma",
             selection: nil
         )
         #expect(environment["SWIFT_LINTER_TEST_SENTINEL"] == "preserved")
         #expect(
             environment[Lint.Rule.Bundle.Baked.Channel.variable]
-                == Lint.Rule.Bundle.Baked.institute.rawValue
+                == "gamma"
         )
     }
 }

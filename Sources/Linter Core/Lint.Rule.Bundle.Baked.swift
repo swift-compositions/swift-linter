@@ -2,19 +2,24 @@ public import Lint
 
 extension Lint.Rule.Bundle {
 
-    public enum Baked: Swift.String, Swift.CaseIterable, Swift.Sendable {
+    public struct Baked: Swift.Hashable, Swift.Sendable {
 
-        case primitives
+        public let token: Swift.String
 
-        case standards
+        public init(_ token: Swift.String) {
+            self.token = token
+        }
+    }
+}
 
-        case institute
+extension Lint.Rule.Bundle.Baked: Swift.ExpressibleByStringLiteral {
+
+    public init(stringLiteral token: Swift.String) {
+        self.init(token)
     }
 }
 
 extension Lint.Rule.Bundle.Baked {
-
-    public var token: Swift.String { rawValue }
 
     public var expression: Swift.String {
         "Lint.Rule.Bundle.\(token)"
