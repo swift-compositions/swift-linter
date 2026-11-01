@@ -154,8 +154,8 @@ extension Lint.File.Single.Extractor {
         let source: Package.Dependency.Source
         let derivedName: Swift.String
         if let pathString: Swift.String = pathArg {
-            do throws(Paths.Path.Error) {
-                _ = try Paths.Path(pathString)
+            do throws(Path::Path.Error) {
+                _ = try Path::Path(pathString)
             } catch {
                 throw .malformedPackageCall(
                     path: sourcePath,
@@ -295,7 +295,7 @@ extension Lint.File.Single.Extractor {
 
     private static func basename(of path: Swift.String) -> Swift.String {
         let typed: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             typed = try File.Path(path)
         } catch {
             return path

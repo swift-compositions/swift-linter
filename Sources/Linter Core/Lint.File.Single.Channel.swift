@@ -36,7 +36,7 @@ extension Lint.File.Single.Channel {
     internal func path(
         consumerPackageRoot: File.Path,
         nonce: Swift.String
-    ) throws(Paths.Path.Error) -> File.Path {
+    ) throws(Path::Path.Error) -> File.Path {
         let name: Swift.String = nonce.isEmpty ? "\(basename).json" : "\(basename)-\(nonce).json"
 
         let trailing: File.Path = try File.Path(name)
@@ -56,7 +56,7 @@ extension Lint.File.Single.Channel {
             throw .writeFailed(variable: variable, description: "create state directory: \(error)")
         }
         let target: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             target = try self.path(consumerPackageRoot: consumerPackageRoot, nonce: nonce)
         } catch {
             throw .writeFailed(variable: variable, description: "compose manifest path: \(error)")
@@ -88,7 +88,7 @@ extension Lint.File.Single.Channel {
 
     internal func resolve(raw: Swift.String) throws(Error) -> Lint.Manifest {
         let path: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             path = try File.Path(raw)
         } catch {
             throw .invalidPath(variable: variable, raw: raw, description: "\(error)")

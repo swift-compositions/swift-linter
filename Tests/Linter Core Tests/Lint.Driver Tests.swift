@@ -57,7 +57,7 @@ extension Lint.Driver.Test.`Configuration From Manifest` {
     }
 
     @Test
-    func `Excluded paths are carried through to Configuration`() throws(Paths.Path.Error) {
+    func `Excluded paths are carried through to Configuration`() throws(Path::Path.Error) {
         let manifest = Lint.Manifest(
             excluded: [
                 try File.Path("Tests/Fixtures"),

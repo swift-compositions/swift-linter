@@ -175,7 +175,7 @@ extension Lint.Run {
         relativePath: Lint.Source.Path
     ) throws(Error) -> File.Path {
         guard !relativePath.underlying.isEmpty else { return root }
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             return root.appending(try File.Path(relativePath.underlying))
         } catch {
             throw .fileNotReadable(path: root)
@@ -197,7 +197,7 @@ extension Lint.Run {
         } else {
 
             let relative: File.Path
-            do throws(Paths.Path.Error) {
+            do throws(Path::Path.Error) {
                 relative = try File.Path(relativePath.underlying)
             } catch {
 
@@ -252,7 +252,7 @@ extension Lint.Run {
     internal static func license(at root: File.Path) -> Lint.Source.Index.License {
         for name in ["LICENSE.md", "LICENSE"] {
             let path: File.Path
-            do throws(Paths.Path.Error) {
+            do throws(Path::Path.Error) {
                 path = root.appending(try File.Path(name))
             } catch {
                 continue

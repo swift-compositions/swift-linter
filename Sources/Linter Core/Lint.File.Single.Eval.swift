@@ -106,8 +106,8 @@ extension Lint.File.Single.Eval {
         guard let rawPath else {
             return Self.publishedEngineDependency()
         }
-        do throws(Paths.Path.Error) {
-            _ = try Paths.Path(rawPath)
+        do throws(Path::Path.Error) {
+            _ = try Path::Path(rawPath)
         } catch {
             throw .materializationFailed(
                 reason: "SWIFT_LINTER_PATH `\(rawPath)` is not a valid path: \(error)"
@@ -201,7 +201,7 @@ extension Lint.File.Single.Eval {
             return nil
         }
         let linter: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             linter = try File.Path(linterPath)
         } catch {
             return nil

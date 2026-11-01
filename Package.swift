@@ -76,10 +76,10 @@ let package = Package(
         .package(url: "https://github.com/swift-standards/swift-uri-standard.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-environment.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-file-system.git", branch: "main", traits: ["Glob"]),
+        .package(url: "https://github.com/swift-atoms/swift-path.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-json.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-kernel.git", branch: "main"),
         .package(url: "https://github.com/swift-compositions/swift-manifests.git", branch: "main"),
-        .package(url: "https://github.com/swift-compositions/swift-paths.git", branch: "main"),
         .package(
             url: "https://github.com/swift-compositions/swift-package-manager.git",
             branch: "main"
@@ -137,7 +137,7 @@ let package = Package(
             dependencies: [
                 .target(name: "Linter Core"),
                 .product(name: "JSON", package: "swift-json"),
-                .product(name: "Paths", package: "swift-paths"),
+                .product(name: "Path", package: "swift-path"),
             ]
         ),
         .target(

@@ -48,7 +48,7 @@ extension Lint.Source.Walker.Test {
 
     fileprivate static func fixtureRoot(
         testFile: Swift.String = #filePath
-    ) throws(Paths.Path.Error) -> File.Path {
+    ) throws(Path::Path.Error) -> File.Path {
         var components: [Swift.String] =
             testFile
             .split(omittingEmptySubsequences: false, whereSeparator: { $0 == "/" || $0 == "\\" })
@@ -63,7 +63,7 @@ extension Lint.Source.Walker.Test {
 
 extension Lint.Source.Walker.Test.Unit {
     @Test
-    func `paths(under:) preserves production Package files and skips package subtrees`() throws(Paths.Path.Error) {
+    func `paths(under:) preserves production Package files and skips package subtrees`() throws(Path::Path.Error) {
         let root = try Lint.Source.Walker.Test.fixtureRoot()
         let paths = Lint.Source.Walker.paths(under: root).map(\.underlying)
         #expect(
@@ -84,7 +84,7 @@ extension Lint.Source.Walker.Test.Unit {
     }
 
     @Test
-    func `an explicitly selected documentation root keeps its relative Swift inputs`() throws(Paths.Path.Error) {
+    func `an explicitly selected documentation root keeps its relative Swift inputs`() throws(Path::Path.Error) {
         let fixture = try Lint.Source.Walker.Test.fixtureRoot()
         let directory: File.Path = "Sources/Outer/Outer.docc"
         let root = fixture.appending(directory)
@@ -103,7 +103,7 @@ extension Lint.Source.Walker.Test.`Edge Case` {
     func `documentation directory components exclude descendant source`(
         _ path: Swift.String
     )
-        throws(Paths.Path.Error)
+        throws(Path::Path.Error)
     {
         let relative = try File.Path(path)
         #expect(Lint.Source.Walker.isDocumentation(relative))
@@ -120,7 +120,7 @@ extension Lint.Source.Walker.Test.`Edge Case` {
     func `near directory names and the final filename remain ordinary source`(
         _ path: Swift.String
     )
-        throws(Paths.Path.Error)
+        throws(Path::Path.Error)
     {
         let relative = try File.Path(path)
         #expect(!Lint.Source.Walker.isDocumentation(relative))
@@ -134,7 +134,7 @@ extension Lint.Source.Walker.Test.`Edge Case` {
     func `backslashes follow the native path component contract`(
         _ path: Swift.String
     )
-        throws(Paths.Path.Error)
+        throws(Path::Path.Error)
     {
         let relative = try File.Path(path)
         #if os(Windows)
@@ -176,7 +176,7 @@ extension Lint.Source.Walker.Test.Integration {
     {
 
         let root: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             root = try Lint.Source.Walker.Test.fixtureRoot()
         } catch {
             Issue.record("fixture root unavailable: \(error)")

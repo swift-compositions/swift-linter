@@ -136,7 +136,7 @@ extension Lint.CLI {
         )
 
         let consumerRoot: File_System.File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             consumerRoot = try File_System.File.Path(consumerRootString)
         } catch {
             Lint.CLI.writeError("[swift-linter] error: invalid consumer root: \(error)\n")
@@ -214,9 +214,9 @@ extension Lint.CLI {
         let configuration: Lint.Configuration = try resolveConfiguration(consumerRoot: consumerRoot)
 
         let typedPaths: [File_System.File.Path]
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             typedPaths = try paths.map {
-                (raw: Swift.String) throws(Paths.Path.Error) in
+                (raw: Swift.String) throws(Path::Path.Error) in
                 try File_System.File.Path(raw)
             }
         } catch {
@@ -265,7 +265,7 @@ extension Lint.CLI {
     ) throws(ExitCode) -> Lint.Configuration {
         let manifestOverride: File_System.File.Path?
         if let linter {
-            do throws(Paths.Path.Error) {
+            do throws(Path::Path.Error) {
                 manifestOverride = try .init(linter)
             } catch {
                 Lint.CLI.writeError("[swift-linter] error: invalid manifest path: \(error)\n")

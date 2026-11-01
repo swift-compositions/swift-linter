@@ -49,7 +49,7 @@ extension Lint.Run.Test.`Brand Pre-Pass` {
     private static func fixtureRoot(
         _ name: Swift.String,
         testFile: Swift.String = #filePath
-    ) throws(Paths.Path.Error) -> File.Path {
+    ) throws(Path::Path.Error) -> File.Path {
         var components: [Swift.String] =
             testFile
             .split(omittingEmptySubsequences: false, whereSeparator: { $0 == "/" || $0 == "\\" })
@@ -65,7 +65,7 @@ extension Lint.Run.Test.`Brand Pre-Pass` {
     func `brand owner run self-suppresses across files`() throws(Lint.Run.Error) {
 
         let root: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             root = try Self.fixtureRoot("brand-prepass-fixture")
         } catch {
             Issue.record("fixture root unavailable: \(error)")
@@ -82,7 +82,7 @@ extension Lint.Run.Test.`Brand Pre-Pass` {
     func `consumer run without the brand still fires`() throws(Lint.Run.Error) {
 
         let root: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             root = try Self.fixtureRoot("brand-consumer-fixture")
         } catch {
             Issue.record("fixture root unavailable: \(error)")
@@ -130,7 +130,7 @@ extension Lint.Run.Test.Integration {
 
     private static func fixtureRoot(
         testFile: Swift.String = #filePath
-    ) throws(Paths.Path.Error) -> File.Path {
+    ) throws(Path::Path.Error) -> File.Path {
 
         var components: [Swift.String] =
             testFile
@@ -147,7 +147,7 @@ extension Lint.Run.Test.Integration {
     func `paths .all yields findings for both A and B`() throws(Lint.Run.Error) {
 
         let root: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             root = try Self.fixtureRoot()
         } catch {
             Issue.record("fixture root unavailable: \(error)")
@@ -164,7 +164,7 @@ extension Lint.Run.Test.Integration {
     func `paths .including A yields finding for A only`() throws(Lint.Run.Error) {
 
         let root: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             root = try Self.fixtureRoot()
         } catch {
             Issue.record("fixture root unavailable: \(error)")
@@ -182,7 +182,7 @@ extension Lint.Run.Test.Integration {
     func `paths .excluding B yields finding for A only`() throws(Lint.Run.Error) {
 
         let root: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             root = try Self.fixtureRoot()
         } catch {
             Issue.record("fixture root unavailable: \(error)")
@@ -200,7 +200,7 @@ extension Lint.Run.Test.Integration {
     func `paths .including non-matching yields no findings`() throws(Lint.Run.Error) {
 
         let root: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             root = try Self.fixtureRoot()
         } catch {
             Issue.record("fixture root unavailable: \(error)")

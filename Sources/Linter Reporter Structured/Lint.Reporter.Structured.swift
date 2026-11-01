@@ -1,6 +1,6 @@
 public import JSON
 public import Linter_Core
-internal import Paths
+internal import File_System
 
 extension Lint.Reporter {
 

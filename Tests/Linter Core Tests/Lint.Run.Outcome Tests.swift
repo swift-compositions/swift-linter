@@ -72,7 +72,7 @@ extension Lint.Run.Outcome.Test.Integration {
 
     private static func fixtureRoot(
         testFile: Swift.String = #filePath
-    ) throws(Paths.Path.Error) -> File.Path {
+    ) throws(Path::Path.Error) -> File.Path {
         var components: [Swift.String] =
             testFile
             .split(omittingEmptySubsequences: false, whereSeparator: { $0 == "/" || $0 == "\\" })

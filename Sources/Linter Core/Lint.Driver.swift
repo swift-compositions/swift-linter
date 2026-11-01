@@ -94,7 +94,7 @@ extension Lint.Driver {
         }
 
         let linter: File.Path
-        do throws(Paths.Path.Error) {
+        do throws(Path::Path.Error) {
             linter = try File.Path(linterPath)
         } catch {
             return nil

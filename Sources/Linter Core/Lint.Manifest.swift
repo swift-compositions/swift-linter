@@ -44,7 +44,7 @@ extension Lint.Manifest: JSON.Serializable {
         let excludedRaw = try [Swift.String](json: json["excluded"])
         let excluded: [File.Path] = try excludedRaw.map {
             (string: Swift.String) throws(JSON.Error) -> File.Path in
-            do throws(Paths.Path.Error) {
+            do throws(Path::Path.Error) {
                 return try File.Path(string)
             } catch {
                 throw JSON.Error.typeMismatch(

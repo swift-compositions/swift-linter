@@ -104,7 +104,7 @@ extension Lint.Profile.Test.Unit {
 
     fileprivate static func fixtureRoot(
         testFile: Swift.String = #filePath
-    ) throws(Paths.Path.Error) -> File.Path {
+    ) throws(Path::Path.Error) -> File.Path {
         var components = testFile.split(
             separator: "/",
             omittingEmptySubsequences: false
