@@ -1,6 +1,6 @@
+internal import File_System
 public import JSON
 public import Linter_Core
-internal import File_System
 
 extension Lint.Reporter {
 
