@@ -70,6 +70,22 @@ extension Lint.Source.Walker {
         return results.sorted(by: { $0.underlying < $1.underlying })
     }
 
+    public static let documentation: [Glob.Pattern] = ["**/*.md"]
+
+    public static func documents(under root: File.Path) -> Swift.Set<Swift.String> {
+        guard root.components.last?.extension?.string != "swift" else { return [] }
+        let files: [File]
+        do throws(Glob.Error) {
+            files = try File.Directory(root).glob.files(
+                include: documentation,
+                excluding: excluded.filter { $0 != "**/*.docc/**" }
+            )
+        } catch {
+            return []
+        }
+        return Swift.Set(files.compactMap { $0.path.relative(to: root).map(\.description) })
+    }
+
     internal static func isDocumentation(_ relative: File.Path) -> Swift.Bool {
         relative.components.dropLast().contains { $0.extension?.string == "docc" }
     }
