@@ -1,5 +1,5 @@
 internal import File_System
-public import JSON
+import JSON
 public import Linter_Core
 
 extension Lint.Reporter {

@@ -3,7 +3,7 @@ public import Linter_Core
 public import Terminal
 
 #if !os(Windows)
-    public import ISO_9945_Kernel_Terminal
+    import ISO_9945_Kernel_Terminal
 #else
     public import Windows_32_Kernel_Terminal
 #endif

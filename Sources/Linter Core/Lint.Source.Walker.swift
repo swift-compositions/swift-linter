@@ -1,6 +1,5 @@
 public import File_System
 public import Glob
-import Glob
 public import Lint
 internal import SwiftParser
 internal import SwiftSyntax

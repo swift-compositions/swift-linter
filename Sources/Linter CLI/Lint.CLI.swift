@@ -1,7 +1,7 @@
 public import ArgumentParser
 import Environment
 import File_System
-public import File_System_Core
+import File_System_Core
 import Kernel
 import Linter
 import Linter_Reporter_SARIF
