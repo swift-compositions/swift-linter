@@ -26,13 +26,13 @@ extension Lint.Driver {
         manifestOverride: File.Path? = nil
     ) throws(Lint.Driver.Error) -> Lint.Configuration {
         let manifestDirectory: Swift.String
-        let manifestFilename: Swift.String
+        let manifestFilename: File.Path.Component
         if let override = manifestOverride {
             guard File.System.Stat.isFile(at: override) else {
                 throw .resolutionFailed(description: "manifest override \(override) does not exist")
             }
             manifestDirectory = override.parent.map { $0.description } ?? "."
-            manifestFilename = override.components.last.map { $0.string } ?? "Lint.swift"
+            manifestFilename = override.components.last ?? "Lint.swift"
         } else {
             guard Self.manifest.path(at: consumerPackageRoot) != nil else {
                 return defaultConfiguration()

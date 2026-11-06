@@ -149,7 +149,7 @@ extension Lint.File.Single.Eval {
             ],
             arguments: arguments,
             environment: environment,
-            toolsVersion: "6.4"
+            toolsVersion: Version.Tools(major: 6, minor: 4)
         )
     }
 

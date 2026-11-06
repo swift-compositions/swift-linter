@@ -199,7 +199,7 @@ extension Lint.File.Single.Test.Eval.Unit {
             ]
         )
         #expect(configuration.arguments == [consumer.string])
-        #expect(configuration.toolsVersion == "6.4")
+        #expect(configuration.toolsVersion == Version.Tools(major: 6, minor: 4))
     }
 
     @Test
