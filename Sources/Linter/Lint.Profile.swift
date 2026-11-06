@@ -1,4 +1,4 @@
-internal import File_System
+public import File_System
 internal import JSON
 public import Linter_Core
 
@@ -40,9 +40,7 @@ extension Lint.Profile {
 }
 
 extension Lint.Profile {
-    public static func read(at path: Swift.String) throws(Error) -> Self {
-        let file: File.Path
-        do throws(File.Path.Error) { file = try .init(path) } catch { throw .path("\(error)") }
+    public static func read(at file: File.Path) throws(Error) -> Self {
         let contents: Swift.String
         do throws(Either<File.System.Read.Full.Error, Never>) {
             contents = try File(file).read.full { bytes in

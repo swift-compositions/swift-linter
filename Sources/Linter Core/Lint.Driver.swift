@@ -101,19 +101,19 @@ extension Lint.Driver {
         }
         return [
             Manifest::Manifest.Dependency(
-                path: Lint.Driver.Manifest.checkout("swift-json", beside: linter).string,
+                path: Lint.Driver.Manifest.checkout("swift-json", beside: linter),
                 name: "swift-json",
                 product: "JSON",
                 imports: ["JSON"]
             ),
             Manifest::Manifest.Dependency(
-                path: Lint.Driver.Manifest.checkout("swift-file-system", beside: linter).string,
+                path: Lint.Driver.Manifest.checkout("swift-file-system", beside: linter),
                 name: "swift-file-system",
                 product: "File System",
                 imports: ["File_System"]
             ),
             Manifest::Manifest.Dependency(
-                path: linterPath,
+                path: linter,
                 name: "swift-linter",
                 product: "Linter",
                 imports: ["Linter"]

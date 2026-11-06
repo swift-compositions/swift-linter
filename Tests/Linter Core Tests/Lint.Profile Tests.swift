@@ -99,7 +99,7 @@ extension Lint.Profile.Test.Unit {
             {"schema":2,"revision":"revision","bundle":"gamma","applicability":\(applicability),"rules":["known"]}
             """
         )
-        return try Lint.Profile.read(at: path.description)
+        return try Lint.Profile.read(at: path)
     }
 
     fileprivate static func fixtureRoot(

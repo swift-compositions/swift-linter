@@ -71,7 +71,11 @@ extension Lint {
             Swift.print(document.serialize(pretty: false))
         case .profile(let path, let paths):
             let profile: Lint.Profile
-            do throws(Lint.Profile.Error) { profile = try .read(at: path) } catch {
+            do throws(Lint.Profile.Error) {
+                let file: Path::Path
+                do throws(Path::Path.Error) { file = try .init(path) } catch { throw .path("\(error)") }
+                profile = try .read(at: file)
+            } catch {
                 failLoud("profile: \(error)")
             }
             let requested: Lint.Rule.Bundle.Baked?

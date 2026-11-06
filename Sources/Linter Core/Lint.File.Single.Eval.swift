@@ -208,19 +208,19 @@ extension Lint.File.Single.Eval {
         }
         let parentDependencies: [Manifest.Dependency] = [
             Manifest.Dependency(
-                path: Lint.Driver.Manifest.checkout("swift-json", beside: linter).string,
+                path: Lint.Driver.Manifest.checkout("swift-json", beside: linter),
                 name: "swift-json",
                 product: "JSON",
                 imports: ["JSON"]
             ),
             Manifest.Dependency(
-                path: Lint.Driver.Manifest.checkout("swift-file-system", beside: linter).string,
+                path: Lint.Driver.Manifest.checkout("swift-file-system", beside: linter),
                 name: "swift-file-system",
                 product: "File System",
                 imports: ["File_System"]
             ),
             Manifest.Dependency(
-                path: linterPath,
+                path: linter,
                 name: Self.pathIdentity(linterPath),
                 product: "Linter",
                 imports: ["Linter"]
