@@ -3,7 +3,9 @@ import Testing
 
 @testable import Linter
 
-extension Lint.Profile {
+enum `Lint.Profile Tests` {}
+
+extension `Lint.Profile Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -12,7 +14,7 @@ extension Lint.Profile {
     }
 }
 
-extension Lint.Profile.Test.Unit {
+extension `Lint.Profile Tests`.Test.Unit {
     @Test
     func `explicit profile selects the complete baked inventory`() throws {
         let known = Self.rule("known")
@@ -117,7 +119,7 @@ extension Lint.Profile.Test.Unit {
     }
 }
 
-extension Lint.Profile.Test.`Edge Case` {
+extension `Lint.Profile Tests`.Test.`Edge Case` {
     @Test
     func `explicit profile refuses zero rules`() {
         #expect(throws: Lint.Profile.Error.self) {
@@ -140,8 +142,8 @@ extension Lint.Profile.Test.`Edge Case` {
 
     @Test
     func `explicit profile refuses a strict subset of its baked inventory`() throws {
-        let known = Lint.Profile.Test.Unit.rule("known")
-        let other = Lint.Profile.Test.Unit.rule("other")
+        let known = `Lint.Profile Tests`.Test.Unit.rule("known")
+        let other = `Lint.Profile Tests`.Test.Unit.rule("other")
         let profile = try Lint.Profile(
             revision: "revision",
             bundle: "gamma",
@@ -156,7 +158,7 @@ extension Lint.Profile.Test.`Edge Case` {
     @Test
     func `schema two refuses a malformed target resolution`() {
         #expect(throws: Lint.Profile.Error.self) {
-            try Lint.Profile.Test.Unit.read(
+            try `Lint.Profile Tests`.Test.Unit.read(
                 key: "malformed-target",
                 applicability: """
                     [{"rule":"known","excludedTargets":[{"identity":"Declared Standard","sourceRoot":"Sources/Other/"}]}]
@@ -168,7 +170,7 @@ extension Lint.Profile.Test.`Edge Case` {
     @Test
     func `schema two refuses a duplicate target identity`() {
         #expect(throws: Lint.Profile.Error.self) {
-            try Lint.Profile.Test.Unit.read(
+            try `Lint.Profile Tests`.Test.Unit.read(
                 key: "duplicate-target",
                 applicability: """
                     [{"rule":"known","excludedTargets":[{"identity":"Declared Standard","sourceRoot":"Sources/Declared Standard/"},{"identity":"Declared Standard","sourceRoot":"Sources/Declared Standard/"}]}]
@@ -178,7 +180,7 @@ extension Lint.Profile.Test.`Edge Case` {
     }
 }
 
-extension Lint.Profile.Test.Unit {
+extension `Lint.Profile Tests`.Test.Unit {
     @Test
     func `a profile for another bundle than the requested one is rejected`() throws {
         let profile = try Lint.Profile(

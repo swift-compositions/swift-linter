@@ -8,7 +8,9 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.Run.Outcome {
+enum `Lint.Run.Outcome Tests` {}
+
+extension `Lint.Run.Outcome Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -17,7 +19,7 @@ extension Lint.Run.Outcome {
     }
 }
 
-extension Lint.Run.Outcome.Test.Integration {
+extension `Lint.Run.Outcome Tests`.Test.Integration {
     @Test
     func `Structured report carries exact engine counts and repair evidence`() throws {
         let measured = Self.rule(id: "measured fixture", severity: .warning)

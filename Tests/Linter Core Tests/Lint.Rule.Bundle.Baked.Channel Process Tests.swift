@@ -11,7 +11,7 @@ import Testing
 
 #if canImport(Darwin) || canImport(Glibc)
 
-    extension Lint.Rule.Bundle.Baked.Channel.Test {
+    extension `Lint.Rule.Bundle.Baked.Channel Tests`.Test {
         @Suite
         struct Process {
             @Suite struct Unit {}
@@ -20,11 +20,11 @@ import Testing
         }
     }
 
-    extension Lint.Rule.Bundle.Baked.Channel.Test.Process {
+    extension `Lint.Rule.Bundle.Baked.Channel Tests`.Test.Process {
         fileprivate enum Executable {}
     }
 
-    extension Lint.Rule.Bundle.Baked.Channel.Test.Process.Executable {
+    extension `Lint.Rule.Bundle.Baked.Channel Tests`.Test.Process.Executable {
         fileprivate static let populated = "swift-linter-bundle-fixture"
         fileprivate static let empty = "swift-linter-bundle-empty-fixture"
 
@@ -151,7 +151,7 @@ import Testing
         }
     }
 
-    extension Lint.Rule.Bundle.Baked.Channel.Test.Process {
+    extension `Lint.Rule.Bundle.Baked.Channel Tests`.Test.Process {
         @Test
         func `Unset channel exits nonzero and names the missing channel`() {
             guard
@@ -282,7 +282,7 @@ import Testing
         }
     }
 
-    extension Lint.Rule.Bundle.Baked.Channel.Test.Process {
+    extension `Lint.Rule.Bundle.Baked.Channel Tests`.Test.Process {
         @Test
         func `A valid token whose baked set is empty is a hard error, not a clean run`() {
             guard
@@ -308,7 +308,7 @@ import Testing
         }
     }
 
-    extension Lint.Rule.Bundle.Baked.Channel.Test.Process {
+    extension `Lint.Rule.Bundle.Baked.Channel Tests`.Test.Process {
         private func runPopulated(
             _ arguments: [Swift.String],
             bundle: Swift.String?

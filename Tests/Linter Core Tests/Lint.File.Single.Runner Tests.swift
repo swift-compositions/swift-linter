@@ -4,7 +4,7 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.File.Single.Test {
+extension `Lint.File.Single Tests`.Test {
     @Suite
     struct Runner {
         @Suite struct Unit {}
@@ -13,7 +13,7 @@ extension Lint.File.Single.Test {
     }
 }
 
-extension Lint.File.Single.Test.Runner.Unit {
+extension `Lint.File.Single Tests`.Test.Runner.Unit {
     @Test
     func `Multi-path arguments are forwarded verbatim after the binary`() {
         let invocation = Lint.File.Single.Runner.invocation(
@@ -43,7 +43,7 @@ extension Lint.File.Single.Test.Runner.Unit {
     }
 }
 
-extension Lint.File.Single.Test.Runner.Unit {
+extension `Lint.File.Single Tests`.Test.Runner.Unit {
     @Test
     func `SARIF selection survives the prebuilt runner environment boundary`() {
         let environment = Lint.File.Single.Runner.environment(

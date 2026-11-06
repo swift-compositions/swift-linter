@@ -12,11 +12,11 @@ import Testing
 
 #if canImport(Darwin) || canImport(Glibc)
 
-    extension Lint.Reporter.Format.Test {
+    extension `Lint.Reporter.Format Tests`.Test {
         fileprivate enum Executable {}
     }
 
-    extension Lint.Reporter.Format.Test.Executable {
+    extension `Lint.Reporter.Format Tests`.Test.Executable {
         fileprivate static let cli = "swift-linter"
         fileprivate static let runner = "swift-linter-report-fixture"
         fileprivate static let invalidRunner = "swift-linter-invalid-control-fixture"
@@ -237,33 +237,33 @@ import Testing
         @Test
         func `Direct CLI emits one empty SARIF document and keeps its summary on stderr`() {
             guard
-                let cli = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.cli,
+                let cli = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.cli,
                     variable: "SWIFT_LINTER_TEST_CLI"
                 )
             else {
                 Issue.record(
                     Comment(
-                        rawValue: Lint.Reporter.Format.Test.Executable.missing(
-                            Lint.Reporter.Format.Test.Executable.cli
+                        rawValue: `Lint.Reporter.Format Tests`.Test.Executable.missing(
+                            `Lint.Reporter.Format Tests`.Test.Executable.cli
                         )
                     )
                 )
                 return
             }
             guard
-                let output = Lint.Reporter.Format.Test.Executable.run(
+                let output = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     cli,
                     arguments: [
                         "--format", "sarif",
                         "--exit-policy", "strict",
-                        Lint.Reporter.Format.Test.Executable.fixture("report-format-direct"),
+                        `Lint.Reporter.Format Tests`.Test.Executable.fixture("report-format-direct"),
                     ],
-                    environment: Lint.Reporter.Format.Test.Executable.environment()
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment()
                 )
             else { return }
             #expect(output.status == .exited(code: 0))
-            Lint.Reporter.Format.Test.Executable.expectSARIF(
+            `Lint.Reporter.Format Tests`.Test.Executable.expectSARIF(
                 output,
                 results: 0,
                 violations: 0
@@ -273,39 +273,39 @@ import Testing
         @Test
         func `Nested package preserves SARIF and strict exit through its spawned executable`() {
             guard
-                let cli = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.cli,
+                let cli = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.cli,
                     variable: "SWIFT_LINTER_TEST_CLI"
                 )
             else {
                 Issue.record(
                     Comment(
-                        rawValue: Lint.Reporter.Format.Test.Executable.missing("swift-linter")
+                        rawValue: `Lint.Reporter.Format Tests`.Test.Executable.missing("swift-linter")
                     )
                 )
                 return
             }
             guard
-                let runner = Lint.Reporter.Format.Test.Executable.requireBuilt(
-                    Lint.Reporter.Format.Test.Executable.runner
+                let runner = `Lint.Reporter.Format Tests`.Test.Executable.requireBuilt(
+                    `Lint.Reporter.Format Tests`.Test.Executable.runner
                 )
             else { return }
             guard
-                let output = Lint.Reporter.Format.Test.Executable.run(
+                let output = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     cli,
                     arguments: [
                         "--format", "sarif",
                         "--exit-policy", "strict",
-                        Lint.Reporter.Format.Test.Executable.fixture("report-format-nested"),
+                        `Lint.Reporter.Format Tests`.Test.Executable.fixture("report-format-nested"),
                     ],
-                    environment: Lint.Reporter.Format.Test.Executable.environment(
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment(
                         bundle: "alpha",
                         dispatch: runner
                     )
                 )
             else { return }
             #expect(output.status == .exited(code: 1))
-            Lint.Reporter.Format.Test.Executable.expectSARIF(
+            `Lint.Reporter.Format Tests`.Test.Executable.expectSARIF(
                 output,
                 results: 1,
                 violations: 1
@@ -315,40 +315,40 @@ import Testing
         @Test
         func `Eval fallback preserves SARIF and strict exit through its generated executable`() {
             guard
-                let cli = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.cli,
+                let cli = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.cli,
                     variable: "SWIFT_LINTER_TEST_CLI"
                 )
             else {
                 Issue.record(
                     Comment(
-                        rawValue: Lint.Reporter.Format.Test.Executable.missing("swift-linter")
+                        rawValue: `Lint.Reporter.Format Tests`.Test.Executable.missing("swift-linter")
                     )
                 )
                 return
             }
             guard
-                let runner = Lint.Reporter.Format.Test.Executable.requireBuilt(
-                    Lint.Reporter.Format.Test.Executable.runner
+                let runner = `Lint.Reporter.Format Tests`.Test.Executable.requireBuilt(
+                    `Lint.Reporter.Format Tests`.Test.Executable.runner
                 )
             else { return }
             guard
-                let output = Lint.Reporter.Format.Test.Executable.run(
+                let output = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     cli,
                     arguments: [
                         "--format", "sarif",
                         "--exit-policy", "strict",
-                        Lint.Reporter.Format.Test.Executable.fixture("report-format-eval"),
+                        `Lint.Reporter.Format Tests`.Test.Executable.fixture("report-format-eval"),
                     ],
-                    environment: Lint.Reporter.Format.Test.Executable.environment(
-                        linter: Lint.Reporter.Format.Test.Executable.root(),
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment(
+                        linter: `Lint.Reporter.Format Tests`.Test.Executable.root(),
                         bundle: "alpha",
                         dispatch: runner
                     )
                 )
             else { return }
             #expect(output.status == .exited(code: 1))
-            Lint.Reporter.Format.Test.Executable.expectSARIF(
+            `Lint.Reporter.Format Tests`.Test.Executable.expectSARIF(
                 output,
                 results: 1,
                 violations: 1
@@ -358,12 +358,12 @@ import Testing
         @Test
         func `Prebuilt runner preserves SARIF and strict exit through the provisioned binary`() {
             guard
-                let cli = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.cli,
+                let cli = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.cli,
                     variable: "SWIFT_LINTER_TEST_CLI"
                 ),
-                let runner = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.runner,
+                let runner = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.runner,
                     variable: "SWIFT_LINTER_TEST_RUNNER"
                 )
             else {
@@ -371,18 +371,18 @@ import Testing
                 return
             }
             guard
-                let output = Lint.Reporter.Format.Test.Executable.run(
+                let output = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     cli,
                     arguments: [
                         "--format", "sarif",
                         "--exit-policy", "strict",
-                        Lint.Reporter.Format.Test.Executable.fixture("report-format-runner"),
+                        `Lint.Reporter.Format Tests`.Test.Executable.fixture("report-format-runner"),
                     ],
-                    environment: Lint.Reporter.Format.Test.Executable.environment(runner: runner)
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment(runner: runner)
                 )
             else { return }
             #expect(output.status == .exited(code: 1))
-            Lint.Reporter.Format.Test.Executable.expectSARIF(
+            `Lint.Reporter.Format Tests`.Test.Executable.expectSARIF(
                 output,
                 results: 1,
                 violations: 1
@@ -392,35 +392,35 @@ import Testing
         @Test
         func `Unset format remains byte identical to explicit text in a configured executable`() {
             guard
-                let runner = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.runner,
+                let runner = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.runner,
                     variable: "SWIFT_LINTER_TEST_RUNNER"
                 )
             else {
                 Issue.record(
                     Comment(
-                        rawValue: Lint.Reporter.Format.Test.Executable.missing(
+                        rawValue: `Lint.Reporter.Format Tests`.Test.Executable.missing(
                             "swift-linter-report-fixture"
                         )
                     )
                 )
                 return
             }
-            let arguments = [Lint.Reporter.Format.Test.Executable.fixture("report-format-direct")]
+            let arguments = [`Lint.Reporter.Format Tests`.Test.Executable.fixture("report-format-direct")]
 
             let alphaBundle = "alpha"
             guard
-                let unset = Lint.Reporter.Format.Test.Executable.run(
+                let unset = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     runner,
                     arguments: arguments,
-                    environment: Lint.Reporter.Format.Test.Executable.environment(
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment(
                         bundle: alphaBundle
                     )
                 ),
-                let text = Lint.Reporter.Format.Test.Executable.run(
+                let text = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     runner,
                     arguments: arguments,
-                    environment: Lint.Reporter.Format.Test.Executable.environment(
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment(
                         format: Lint.Reporter.Format.Channel.value(.text),
                         bundle: alphaBundle
                     )
@@ -431,26 +431,26 @@ import Testing
             #expect(unset.stdout == text.stdout)
             #expect(unset.stderr == text.stderr)
             #expect(
-                Lint.Reporter.Format.Test.Executable.stdout(unset).contains(
+                `Lint.Reporter.Format Tests`.Test.Executable.stdout(unset).contains(
                     ":1:1: error: report format fixture: fixture rule fired"
                 )
             )
             #expect(
-                Lint.Reporter.Format.Test.Executable.stderr(unset).contains("1 violation")
+                `Lint.Reporter.Format Tests`.Test.Executable.stderr(unset).contains("1 violation")
             )
         }
 
         @Test
         func `Invalid format exits nonzero with a visible stderr diagnostic and no stdout`() {
             guard
-                let runner = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.runner,
+                let runner = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.runner,
                     variable: "SWIFT_LINTER_TEST_RUNNER"
                 )
             else {
                 Issue.record(
                     Comment(
-                        rawValue: Lint.Reporter.Format.Test.Executable.missing(
+                        rawValue: `Lint.Reporter.Format Tests`.Test.Executable.missing(
                             "swift-linter-report-fixture"
                         )
                     )
@@ -458,12 +458,12 @@ import Testing
                 return
             }
             guard
-                let output = Lint.Reporter.Format.Test.Executable.run(
+                let output = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     runner,
                     arguments: [
-                        Lint.Reporter.Format.Test.Executable.fixture("report-format-direct")
+                        `Lint.Reporter.Format Tests`.Test.Executable.fixture("report-format-direct")
                     ],
-                    environment: Lint.Reporter.Format.Test.Executable.environment(
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment(
                         format: "checkstyle",
                         bundle: "alpha"
                     )
@@ -472,7 +472,7 @@ import Testing
             #expect(output.status == .exited(code: 1))
             #expect(output.stdout?.isEmpty == true)
             #expect(
-                Lint.Reporter.Format.Test.Executable.stderr(output).contains(
+                `Lint.Reporter.Format Tests`.Test.Executable.stderr(output).contains(
                     "[Lint] error: output-format channel:"
                 )
             )
@@ -481,31 +481,31 @@ import Testing
         @Test
         func `Unresolvable manifest dependencies exit nonzero instead of linting with zero rules`() {
             guard
-                let cli = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.cli,
+                let cli = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.cli,
                     variable: "SWIFT_LINTER_TEST_CLI"
                 )
             else {
                 Issue.record(
                     Comment(
-                        rawValue: Lint.Reporter.Format.Test.Executable.missing("swift-linter")
+                        rawValue: `Lint.Reporter.Format Tests`.Test.Executable.missing("swift-linter")
                     )
                 )
                 return
             }
-            defer { Lint.Reporter.Format.Test.Executable.discardScratch(of: "manifest-unresolvable") }
+            defer { `Lint.Reporter.Format Tests`.Test.Executable.discardScratch(of: "manifest-unresolvable") }
             guard
-                let output = Lint.Reporter.Format.Test.Executable.run(
+                let output = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     cli,
                     arguments: [
-                        Lint.Reporter.Format.Test.Executable.fixture("manifest-unresolvable")
+                        `Lint.Reporter.Format Tests`.Test.Executable.fixture("manifest-unresolvable")
                     ],
-                    environment: Lint.Reporter.Format.Test.Executable.environment(
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment(
                         linter: "/nonexistent-swift-linter-workspace/swift-linter"
                     )
                 )
             else { return }
-            let stderr = Lint.Reporter.Format.Test.Executable.stderr(output)
+            let stderr = `Lint.Reporter.Format Tests`.Test.Executable.stderr(output)
             #expect(output.status == .exited(code: 1))
             #expect(output.stdout?.isEmpty == true)
             #expect(stderr.contains("[swift-linter] error: manifest resolution failed:"))
@@ -515,29 +515,29 @@ import Testing
         @Test
         func `An unset linter path exits nonzero instead of linting with zero rules`() {
             guard
-                let cli = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.cli,
+                let cli = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.cli,
                     variable: "SWIFT_LINTER_TEST_CLI"
                 )
             else {
                 Issue.record(
                     Comment(
-                        rawValue: Lint.Reporter.Format.Test.Executable.missing("swift-linter")
+                        rawValue: `Lint.Reporter.Format Tests`.Test.Executable.missing("swift-linter")
                     )
                 )
                 return
             }
-            defer { Lint.Reporter.Format.Test.Executable.discardScratch(of: "manifest-unresolvable") }
+            defer { `Lint.Reporter.Format Tests`.Test.Executable.discardScratch(of: "manifest-unresolvable") }
             guard
-                let output = Lint.Reporter.Format.Test.Executable.run(
+                let output = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     cli,
                     arguments: [
-                        Lint.Reporter.Format.Test.Executable.fixture("manifest-unresolvable")
+                        `Lint.Reporter.Format Tests`.Test.Executable.fixture("manifest-unresolvable")
                     ],
-                    environment: Lint.Reporter.Format.Test.Executable.environment()
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment()
                 )
             else { return }
-            let stderr = Lint.Reporter.Format.Test.Executable.stderr(output)
+            let stderr = `Lint.Reporter.Format Tests`.Test.Executable.stderr(output)
             #expect(output.status == .exited(code: 1))
             #expect(output.stdout?.isEmpty == true)
             #expect(stderr.contains("[swift-linter] error: manifest resolution failed:"))
@@ -548,27 +548,27 @@ import Testing
         @Test
         func `Invalid control catalog exits nonzero with a visible stderr diagnostic and no stdout`() {
             guard
-                let runner = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.invalidRunner,
+                let runner = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.invalidRunner,
                     variable: "SWIFT_LINTER_TEST_INVALID_RUNNER"
                 )
             else {
                 Issue.record(
                     Comment(
-                        rawValue: Lint.Reporter.Format.Test.Executable.missing(
-                            Lint.Reporter.Format.Test.Executable.invalidRunner
+                        rawValue: `Lint.Reporter.Format Tests`.Test.Executable.missing(
+                            `Lint.Reporter.Format Tests`.Test.Executable.invalidRunner
                         )
                     )
                 )
                 return
             }
             guard
-                let output = Lint.Reporter.Format.Test.Executable.run(
+                let output = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     runner,
                     arguments: [
-                        Lint.Reporter.Format.Test.Executable.fixture("report-format-direct")
+                        `Lint.Reporter.Format Tests`.Test.Executable.fixture("report-format-direct")
                     ],
-                    environment: Lint.Reporter.Format.Test.Executable.environment(
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment(
                         format: Lint.Reporter.Format.Channel.value(.structured),
                         bundle: "alpha"
                     )
@@ -577,7 +577,7 @@ import Testing
             #expect(output.status == .exited(code: 1))
             #expect(output.stdout?.isEmpty == true)
             #expect(
-                Lint.Reporter.Format.Test.Executable.stderr(output).contains(
+                `Lint.Reporter.Format Tests`.Test.Executable.stderr(output).contains(
                     "[Lint] error: source measurement failed: invalidControlCatalog"
                 )
             )
@@ -587,7 +587,7 @@ import Testing
         func `A missing package-built dispatch executable fails the test instead of skipping`() {
             withKnownIssue {
                 #expect(
-                    Lint.Reporter.Format.Test.Executable.requireBuilt(
+                    `Lint.Reporter.Format Tests`.Test.Executable.requireBuilt(
                         "swift-linter-absent-dispatch-fixture"
                     ) == nil
                 )
@@ -599,37 +599,37 @@ import Testing
             fixture: Swift.String
         ) {
             guard
-                let cli = Lint.Reporter.Format.Test.Executable.product(
-                    Lint.Reporter.Format.Test.Executable.cli,
+                let cli = `Lint.Reporter.Format Tests`.Test.Executable.product(
+                    `Lint.Reporter.Format Tests`.Test.Executable.cli,
                     variable: "SWIFT_LINTER_TEST_CLI"
                 )
             else {
                 Issue.record(
                     Comment(
-                        rawValue: Lint.Reporter.Format.Test.Executable.missing("swift-linter")
+                        rawValue: `Lint.Reporter.Format Tests`.Test.Executable.missing("swift-linter")
                     )
                 )
                 return
             }
             let absent =
-                "\(Lint.Reporter.Format.Test.Executable.root())/.build/swift-linter-absent-dispatch-fixture"
+                "\(`Lint.Reporter.Format Tests`.Test.Executable.root())/.build/swift-linter-absent-dispatch-fixture"
             guard
-                let output = Lint.Reporter.Format.Test.Executable.run(
+                let output = `Lint.Reporter.Format Tests`.Test.Executable.run(
                     cli,
                     arguments: [
                         "--format", "sarif",
                         "--exit-policy", "strict",
-                        Lint.Reporter.Format.Test.Executable.fixture(fixture),
+                        `Lint.Reporter.Format Tests`.Test.Executable.fixture(fixture),
                     ],
-                    environment: Lint.Reporter.Format.Test.Executable.environment(
-                        linter: Lint.Reporter.Format.Test.Executable.root(),
+                    environment: `Lint.Reporter.Format Tests`.Test.Executable.environment(
+                        linter: `Lint.Reporter.Format Tests`.Test.Executable.root(),
                         bundle: "alpha",
                         dispatch: absent
                     ),
                     timeout: .seconds(60)
                 )
             else { return }
-            let stderr = Lint.Reporter.Format.Test.Executable.stderr(output)
+            let stderr = `Lint.Reporter.Format Tests`.Test.Executable.stderr(output)
             #expect(output.status == .exited(code: 1))
             #expect(output.stdout?.isEmpty == true)
             #expect(stderr.contains("dispatch failed"))

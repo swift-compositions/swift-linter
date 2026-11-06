@@ -2,14 +2,14 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.File.Single.Test {
+extension `Lint.File.Single Tests`.Test {
     @Suite
     struct Detection {
         @Suite struct `Edge Case` {}
     }
 }
 
-extension Lint.File.Single.Test.Detection.`Edge Case` {
+extension `Lint.File.Single Tests`.Test.Detection.`Edge Case` {
     @Test
     func `tools version header is found with LF and CRLF line endings`() {
         let header = "// swift-linter-tools-version: 6.4"

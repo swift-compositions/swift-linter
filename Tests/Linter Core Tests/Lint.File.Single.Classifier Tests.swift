@@ -3,7 +3,9 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.File.Single.Classifier {
+enum `Lint.File.Single.Classifier Tests` {}
+
+extension `Lint.File.Single.Classifier Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -12,7 +14,7 @@ extension Lint.File.Single.Classifier {
     }
 }
 
-extension Lint.File.Single.Classifier.Test {
+extension `Lint.File.Single.Classifier Tests`.Test {
 
     private static let baked: Swift.Set<Lint.Rule.Bundle.Baked> = ["alpha", "beta", "gamma"]
 
@@ -387,7 +389,7 @@ extension Lint.File.Single.Classifier.Test {
     }
 }
 
-extension Lint.File.Single.Classifier.Test {
+extension `Lint.File.Single.Classifier Tests`.Test {
 
     @Test
     func `A bundle the runner does not bake falls back to eval`() {

@@ -4,7 +4,9 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.Rule.Bundle.Baked.Channel {
+enum `Lint.Rule.Bundle.Baked.Channel Tests` {}
+
+extension `Lint.Rule.Bundle.Baked.Channel Tests` {
     @Suite(.serialized)
     struct Test {
         @Suite struct Unit {}
@@ -13,7 +15,7 @@ extension Lint.Rule.Bundle.Baked.Channel {
     }
 }
 
-extension Lint.Rule.Bundle.Baked.Channel.Test {
+extension `Lint.Rule.Bundle.Baked.Channel Tests`.Test {
     private func withVariable(_ value: Swift.String?, body: () -> Swift.Void) {
         do throws(Kernel.Environment.Error) {
             if let value {

@@ -4,7 +4,9 @@ import Linter_Reporter_SARIF
 import Linter_Reporter_Text
 import Testing
 
-extension Lint.Reporter {
+enum `Lint.Reporter Tests` {}
+
+extension `Lint.Reporter Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -15,7 +17,7 @@ extension Lint.Reporter {
     }
 }
 
-extension Lint.Reporter.Test {
+extension `Lint.Reporter Tests`.Test {
 
     fileprivate static func fixture(
         visibility: Lint.Visibility?
@@ -35,10 +37,10 @@ extension Lint.Reporter.Test {
     }
 }
 
-extension Lint.Reporter.Test.Text {
+extension `Lint.Reporter Tests`.Test.Text {
     @Test
     func `nil visibility omits the bracketed suffix`() {
-        let finding = Lint.Reporter.Test.fixture(visibility: nil)
+        let finding = `Lint.Reporter Tests`.Test.fixture(visibility: nil)
         let line = Lint.Reporter.Text.line(for: finding)
         #expect(!line.contains("[visibility:"))
 
@@ -47,7 +49,7 @@ extension Lint.Reporter.Test.Text {
 
     @Test
     func `private visibility appends the bracketed suffix`() {
-        let finding = Lint.Reporter.Test.fixture(visibility: .private)
+        let finding = `Lint.Reporter Tests`.Test.fixture(visibility: .private)
         let line = Lint.Reporter.Text.line(for: finding)
         #expect(line.hasSuffix(" [visibility: private]"))
     }
@@ -55,17 +57,17 @@ extension Lint.Reporter.Test.Text {
     @Test
     func `each visibility case round-trips via its raw value`() {
         for visibility in Lint.Visibility.allCases {
-            let finding = Lint.Reporter.Test.fixture(visibility: visibility)
+            let finding = `Lint.Reporter Tests`.Test.fixture(visibility: visibility)
             let line = Lint.Reporter.Text.line(for: finding)
             #expect(line.hasSuffix(" [visibility: \(visibility.rawValue)]"))
         }
     }
 }
 
-extension Lint.Reporter.Test.SARIF {
+extension `Lint.Reporter Tests`.Test.SARIF {
     @Test
     func `nil visibility omits the properties field`() {
-        let finding = Lint.Reporter.Test.fixture(visibility: nil)
+        let finding = `Lint.Reporter Tests`.Test.fixture(visibility: nil)
         let report = Lint.Reporter.SARIF.report(for: [finding])
         #expect(!report.contains("\"visibility\""))
 
@@ -74,7 +76,7 @@ extension Lint.Reporter.Test.SARIF {
 
     @Test
     func `private visibility appears under properties`() {
-        let finding = Lint.Reporter.Test.fixture(visibility: .private)
+        let finding = `Lint.Reporter Tests`.Test.fixture(visibility: .private)
         let report = Lint.Reporter.SARIF.report(for: [finding])
         #expect(report.contains("\"properties\""))
         #expect(report.contains("\"visibility\""))
@@ -84,7 +86,7 @@ extension Lint.Reporter.Test.SARIF {
     @Test
     func `each visibility case is emitted by its raw value`() {
         for visibility in Lint.Visibility.allCases {
-            let finding = Lint.Reporter.Test.fixture(visibility: visibility)
+            let finding = `Lint.Reporter Tests`.Test.fixture(visibility: visibility)
             let report = Lint.Reporter.SARIF.report(for: [finding])
             #expect(report.contains("\"\(visibility.rawValue)\""))
         }

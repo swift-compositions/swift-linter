@@ -3,7 +3,9 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.File.Single.State {
+enum `Lint.File.Single.State Tests` {}
+
+extension `Lint.File.Single.State Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -12,7 +14,7 @@ extension Lint.File.Single.State {
     }
 }
 
-extension Lint.File.Single.State.Test {
+extension `Lint.File.Single.State Tests`.Test {
     private static func freshRoot(key: Swift.String) throws(File.Path.Error) -> File.Path {
         try File.Path.Temporary.deterministic(prefix: "lint-state-root-", key: key, suffix: "")
     }

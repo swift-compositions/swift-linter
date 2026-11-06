@@ -7,7 +7,7 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.File.Single.Test {
+extension `Lint.File.Single Tests`.Test {
     @Suite
     struct Eval {
         @Suite struct Unit {}
@@ -16,7 +16,7 @@ extension Lint.File.Single.Test {
     }
 }
 
-extension Lint.File.Single.Test.Eval.Unit {
+extension `Lint.File.Single Tests`.Test.Eval.Unit {
     private static func freshEvalRoot(key: Swift.String) throws(File.Path.Error) -> File.Path {
         try File.Path.Temporary.deterministic(
             prefix: "lint-eval-invalidate-",
@@ -79,7 +79,7 @@ extension Lint.File.Single.Test.Eval.Unit {
     }
 }
 
-extension Lint.File.Single.Test.Eval.`Edge Case` {
+extension `Lint.File.Single Tests`.Test.Eval.`Edge Case` {
     private static func freshEvalRoot(key: Swift.String) throws(File.Path.Error) -> File.Path {
         try File.Path.Temporary.deterministic(
             prefix: "lint-eval-invalidate-edge-",
@@ -114,7 +114,7 @@ extension Lint.File.Single.Test.Eval.`Edge Case` {
     }
 }
 
-extension Lint.File.Single.Test.Eval.Unit {
+extension `Lint.File.Single Tests`.Test.Eval.Unit {
     @Test
     func `SARIF selection survives eval without a parent manifest`() {
         let environment = Lint.File.Single.Eval.environment(
@@ -148,7 +148,7 @@ extension Lint.File.Single.Test.Eval.Unit {
     }
 }
 
-extension Lint.File.Single.Test.Eval.Unit {
+extension `Lint.File.Single Tests`.Test.Eval.Unit {
     private static func root(testFile: Swift.String = #filePath) -> Swift.String {
         var components = testFile.split(omittingEmptySubsequences: false, whereSeparator: { $0 == "/" || $0 == "\\" })
             .map(Swift.String.init)
@@ -243,7 +243,7 @@ extension Lint.File.Single.Test.Eval.Unit {
     }
 }
 
-extension Lint.File.Single.Test.Eval.Unit {
+extension `Lint.File.Single Tests`.Test.Eval.Unit {
     @Test
     func `a path dependency is named by its directory, as SwiftPM identifies it`() {
         #expect(Lint.File.Single.Eval.pathIdentity("/work/swift-linter") == "swift-linter")

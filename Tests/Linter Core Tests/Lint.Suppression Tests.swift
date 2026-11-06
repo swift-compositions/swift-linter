@@ -7,7 +7,9 @@ import Text
 
 @testable import Linter_Core
 
-extension Lint.Suppression {
+enum `Lint.Suppression Tests` {}
+
+extension `Lint.Suppression Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -18,7 +20,7 @@ extension Lint.Suppression {
     }
 }
 
-extension Lint.Suppression.Test.Scanner {
+extension `Lint.Suppression Tests`.Test.Scanner {
 
     private static func scanSource(
         _ source: Swift.String,
@@ -183,7 +185,7 @@ internal final class LintSuppressionFixtureVisitor: SyntaxVisitor {
     }
 }
 
-extension Lint.Suppression.Test.`Engine Integration` {
+extension `Lint.Suppression Tests`.Test.`Engine Integration` {
 
     @Test
     func `without directive, the fixture rule fires`() throws(Lint.Run.Error) {
@@ -356,7 +358,7 @@ extension Lint.Rule {
     }
 }
 
-extension Lint.Suppression.Test.`Engine Integration` {
+extension `Lint.Suppression Tests`.Test.`Engine Integration` {
     fileprivate static func outcome(
         _ content: Swift.String,
         policy: Lint.Rule.Suppression

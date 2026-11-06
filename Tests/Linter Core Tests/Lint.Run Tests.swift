@@ -4,7 +4,9 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.Run {
+enum `Lint.Run Tests` {}
+
+extension `Lint.Run Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -45,7 +47,7 @@ extension Lint.Rule {
     )
 }
 
-extension Lint.Run.Test.`Brand Pre-Pass` {
+extension `Lint.Run Tests`.Test.`Brand Pre-Pass` {
     private static func fixtureRoot(
         _ name: Swift.String,
         testFile: Swift.String = #filePath
@@ -126,7 +128,7 @@ extension Lint.Rule {
     )
 }
 
-extension Lint.Run.Test.Integration {
+extension `Lint.Run Tests`.Test.Integration {
 
     private static func fixtureRoot(
         testFile: Swift.String = #filePath
@@ -214,7 +216,7 @@ extension Lint.Run.Test.Integration {
     }
 }
 
-extension Lint.Run.Test.Unit {
+extension `Lint.Run Tests`.Test.Unit {
     private static func licenseRoot(key: Swift.String) -> File.Path? {
         let root: File.Path
         do throws(File.Path.Error) {

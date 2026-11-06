@@ -4,7 +4,9 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.Source.Walker {
+enum `Lint.Source.Walker Tests` {}
+
+extension `Lint.Source.Walker Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -44,7 +46,7 @@ extension Lint.Rule {
     )
 }
 
-extension Lint.Source.Walker.Test {
+extension `Lint.Source.Walker Tests`.Test {
 
     fileprivate static func fixtureRoot(
         testFile: Swift.String = #filePath
@@ -61,10 +63,10 @@ extension Lint.Source.Walker.Test {
     }
 }
 
-extension Lint.Source.Walker.Test.Unit {
+extension `Lint.Source.Walker Tests`.Test.Unit {
     @Test
     func `paths(under:) preserves production Package files and skips package subtrees`() throws(Path::Path.Error) {
-        let root = try Lint.Source.Walker.Test.fixtureRoot()
+        let root = try `Lint.Source.Walker Tests`.Test.fixtureRoot()
         let paths = Lint.Source.Walker.paths(under: root).map(\.underlying)
         #expect(
             paths == [
@@ -85,7 +87,7 @@ extension Lint.Source.Walker.Test.Unit {
 
     @Test
     func `an explicitly selected documentation root keeps its relative Swift inputs`() throws(Path::Path.Error) {
-        let fixture = try Lint.Source.Walker.Test.fixtureRoot()
+        let fixture = try `Lint.Source.Walker Tests`.Test.fixtureRoot()
         let directory: File.Path = "Sources/Outer/Outer.docc"
         let root = fixture.appending(directory)
 
@@ -93,7 +95,7 @@ extension Lint.Source.Walker.Test.Unit {
     }
 }
 
-extension Lint.Source.Walker.Test.`Edge Case` {
+extension `Lint.Source.Walker Tests`.Test.`Edge Case` {
     @Test(arguments: [
         "Outer.docc/Example.swift",
         "Sources/Outer/Outer.docc/Example.swift",
@@ -169,7 +171,7 @@ extension Lint.Source.Walker.Test.`Edge Case` {
     }
 }
 
-extension Lint.Source.Walker.Test.Integration {
+extension `Lint.Source.Walker Tests`.Test.Integration {
     @Test
     func `Lint.Run.run does not visit files inside a nested-package subtree`() throws(Lint.Run
         .Error)
@@ -177,7 +179,7 @@ extension Lint.Source.Walker.Test.Integration {
 
         let root: File.Path
         do throws(Path::Path.Error) {
-            root = try Lint.Source.Walker.Test.fixtureRoot()
+            root = try `Lint.Source.Walker Tests`.Test.fixtureRoot()
         } catch {
             Issue.record("fixture root unavailable: \(error)")
             return

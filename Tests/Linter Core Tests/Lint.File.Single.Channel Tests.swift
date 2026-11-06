@@ -3,7 +3,9 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.File.Single.Channel {
+enum `Lint.File.Single.Channel Tests` {}
+
+extension `Lint.File.Single.Channel Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -12,7 +14,7 @@ extension Lint.File.Single.Channel {
     }
 }
 
-extension Lint.File.Single.Channel.Test {
+extension `Lint.File.Single.Channel Tests`.Test {
     private static func freshRoot(key: Swift.String) -> File.Path? {
         do throws(File.Path.Error) {
             return try File.Path.Temporary.deterministic(prefix: "lint-channel-root-", key: key, suffix: "")
@@ -124,7 +126,7 @@ extension Lint.File.Single.Channel.Test {
     }
 }
 
-extension Lint.File.Single.Channel.Test.Unit {
+extension `Lint.File.Single.Channel Tests`.Test.Unit {
     @Test
     func `A run's own nonce-named manifest is discarded at the end of the run`()
         throws(Lint.File.Single.Channel.Error)
@@ -151,7 +153,7 @@ extension Lint.File.Single.Channel.Test.Unit {
     }
 }
 
-extension Lint.File.Single.Channel.Test.`Edge Case` {
+extension `Lint.File.Single.Channel Tests`.Test.`Edge Case` {
     @Test
     func `The shared un-nonced manifest is kept`() throws(Lint.File.Single.Channel.Error) {
         let root: File.Path

@@ -2,7 +2,9 @@ import Testing
 
 @testable import Linter
 
-extension Lint.Run.Command {
+enum `Lint.Run.Command Tests` {}
+
+extension `Lint.Run.Command Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -11,7 +13,7 @@ extension Lint.Run.Command {
     }
 }
 
-extension Lint.Run.Command.Test.Unit {
+extension `Lint.Run.Command Tests`.Test.Unit {
     @Test
     func `inventory alone is the inventory command`() throws {
         #expect(try Lint.Run.Command.parse(["--inventory"]) == .inventory)
@@ -48,7 +50,7 @@ extension Lint.Run.Command.Test.Unit {
     }
 }
 
-extension Lint.Run.Command.Test.`Edge Case` {
+extension `Lint.Run.Command Tests`.Test.`Edge Case` {
     @Test
     func `no arguments lint the current directory`() throws {
         #expect(try Lint.Run.Command.parse([]) == .lint(paths: []))

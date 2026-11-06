@@ -5,7 +5,7 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.Suppression.Test.`Engine Integration` {
+extension `Lint.Suppression Tests`.Test.`Engine Integration` {
 
     static func writeFixture(content: Swift.String) -> File.Path? {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(

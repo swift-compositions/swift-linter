@@ -5,7 +5,9 @@ import Linter
 import Linter_Reporter_Structured
 import Testing
 
-extension Lint.Reporter.Format {
+enum `Lint.Reporter.Format Tests` {}
+
+extension `Lint.Reporter.Format Tests` {
     @Suite(.serialized)
     struct Test {
         @Suite struct Unit {}
@@ -14,7 +16,7 @@ extension Lint.Reporter.Format {
     }
 }
 
-extension Lint.Reporter.Format.Test {
+extension `Lint.Reporter.Format Tests`.Test {
     fileprivate static func withVariable(_ value: Swift.String?, body: () -> Swift.Void) {
         do throws(Kernel.Environment.Error) {
             if let value {
@@ -53,10 +55,10 @@ extension Lint.Reporter.Format.Test {
     }
 }
 
-extension Lint.Reporter.Format.Test.Integration {
+extension `Lint.Reporter.Format Tests`.Test.Integration {
     @Test
     func `Unset channel preserves text compatibility`() {
-        Lint.Reporter.Format.Test.withVariable(nil) {
+        `Lint.Reporter.Format Tests`.Test.withVariable(nil) {
             do throws(Lint.Reporter.Format.Channel.Error) {
                 let format = try Lint.Reporter.Format.Channel.read()
                 #expect(format == .text)
@@ -69,7 +71,7 @@ extension Lint.Reporter.Format.Test.Integration {
     @Test
     func `Every explicit format round trips through the channel`() {
         for format in Lint.Reporter.Format.allCases {
-            Lint.Reporter.Format.Test.withVariable(
+            `Lint.Reporter.Format Tests`.Test.withVariable(
                 Lint.Reporter.Format.Channel.value(format)
             ) {
                 do throws(Lint.Reporter.Format.Channel.Error) {
@@ -83,10 +85,10 @@ extension Lint.Reporter.Format.Test.Integration {
     }
 }
 
-extension Lint.Reporter.Format.Test.`Edge Case` {
+extension `Lint.Reporter.Format Tests`.Test.`Edge Case` {
     @Test
     func `Corrupt channel throws instead of silently substituting text`() {
-        Lint.Reporter.Format.Test.withVariable("checkstyle") {
+        `Lint.Reporter.Format Tests`.Test.withVariable("checkstyle") {
             #expect(
                 throws: Lint.Reporter.Format.Channel.Error.invalid(value: "checkstyle")
             ) {
@@ -103,10 +105,10 @@ extension Lint.Reporter.Format.Test.`Edge Case` {
     }
 }
 
-extension Lint.Reporter.Format.Test.Unit {
+extension `Lint.Reporter.Format Tests`.Test.Unit {
     @Test
     func `Structured selection emits one self-consistent document`() throws(JSON.Error) {
-        let findings = [Lint.Reporter.Format.Test.finding()]
+        let findings = [`Lint.Reporter.Format Tests`.Test.finding()]
         let report = Lint.Reporter.Format.structured.report(for: findings)
         let document = try JSON.parse(report)
 
@@ -125,7 +127,7 @@ extension Lint.Reporter.Format.Test.Unit {
 
     @Test
     func `Explicit text selection preserves the canonical text report`() {
-        let findings = [Lint.Reporter.Format.Test.finding()]
+        let findings = [`Lint.Reporter.Format Tests`.Test.finding()]
         let selected = Lint.Reporter.Format.text.report(for: findings)
         #expect(selected == Lint.Reporter.Text.report(for: findings))
         #expect(selected.hasPrefix("Sources/Foo.swift:10:5: warning: fixture rule:"))
@@ -134,7 +136,7 @@ extension Lint.Reporter.Format.Test.Unit {
     @Test
     func `SARIF selection produces one structured result per finding`() throws(JSON.Error) {
         let report = Lint.Reporter.Format.sarif.report(
-            for: [Lint.Reporter.Format.Test.finding()]
+            for: [`Lint.Reporter.Format Tests`.Test.finding()]
         )
         let document = try JSON.parse(report)
         let results = document.runs[0].results.array

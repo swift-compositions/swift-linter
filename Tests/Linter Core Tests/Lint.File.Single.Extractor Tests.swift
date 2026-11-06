@@ -4,7 +4,9 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.File.Single.Extractor {
+enum `Lint.File.Single.Extractor Tests` {}
+
+extension `Lint.File.Single.Extractor Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -14,7 +16,9 @@ extension Lint.File.Single.Extractor {
     }
 }
 
-extension Lint.File.Single {
+enum `Lint.File.Single Tests` {}
+
+extension `Lint.File.Single Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -24,7 +28,7 @@ extension Lint.File.Single {
     }
 }
 
-extension Lint.File.Single.Test.Canonicalize {
+extension `Lint.File.Single Tests`.Test.Canonicalize {
     @Test
     func `Dot consumerRoot resolves via cwd closure`() {
         let resolved = Lint.File.Single.canonicalize(
@@ -72,7 +76,7 @@ extension Lint.File.Single.Test.Canonicalize {
     }
 }
 
-extension Lint.File.Single.Extractor.Test.Name {
+extension `Lint.File.Single.Extractor Tests`.Test.Name {
     @Test
     func `Sibling-package relative path uses path's own basename`() {
         let name = Lint.File.Single.Extractor.name(
@@ -129,7 +133,7 @@ extension Lint.File.Single.Extractor.Test.Name {
     }
 }
 
-extension Lint.File.Single.Extractor.Test {
+extension `Lint.File.Single.Extractor Tests`.Test {
     @Test
     func `path dependency preserves SwiftPM path string`() throws(Lint.File.Single.Error) {
         let dependencies = try Lint.File.Single.Extractor.dependencies(

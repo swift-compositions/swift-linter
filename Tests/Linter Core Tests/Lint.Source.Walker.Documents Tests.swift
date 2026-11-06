@@ -4,7 +4,7 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.Source.Walker.Test.Integration {
+extension `Lint.Source.Walker Tests`.Test.Integration {
     @Test
     func `documents(under:) lists every markdown file, catalogs included, outside build state`() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("walker-documents-\(UUID().uuidString)")

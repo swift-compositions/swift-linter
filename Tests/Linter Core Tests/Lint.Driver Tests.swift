@@ -4,7 +4,9 @@ import Testing
 
 @testable import Linter_Core
 
-extension Lint.Driver {
+enum `Lint.Driver Tests` {}
+
+extension `Lint.Driver Tests` {
     @Suite
     struct Test {
         @Suite struct Unit {}
@@ -14,7 +16,7 @@ extension Lint.Driver {
     }
 }
 
-extension Lint.Driver.Test.`Configuration From Manifest` {
+extension `Lint.Driver Tests`.Test.`Configuration From Manifest` {
     @Test
     func `Empty manifest with nil parent produces empty effective rules`() {
         let manifest = Lint.Manifest()
