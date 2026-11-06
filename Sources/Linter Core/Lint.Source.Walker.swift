@@ -82,7 +82,12 @@ extension Lint.Source.Walker {
         } catch {
             return []
         }
-        return Swift.Set(files.compactMap { $0.path.relative(to: root).map(\.description) })
+        // A repository-relative name, `/`-separated on every platform, as git and the README rule name files.
+        return Swift.Set(
+            files.compactMap { file in
+                file.path.relative(to: root).map { $0.components.map(\.string).joined(separator: "/") }
+            }
+        )
     }
 
     internal static func isDocumentation(_ relative: File.Path) -> Swift.Bool {

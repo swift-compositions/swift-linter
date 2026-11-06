@@ -61,14 +61,17 @@ extension Lint.Rule.Bundle.Baked.Channel.Test {
         }
     }
 
-    @Test
-    func `empty value throws`() {
-        withVariable("") {
-            #expect(throws: Lint.Rule.Bundle.Baked.Channel.Error.invalid(value: "")) {
-                try Lint.Rule.Bundle.Baked.Channel.read()
+    // Windows has no empty variable: setting one to "" removes it, so the case exists only elsewhere.
+    #if !os(Windows)
+        @Test
+        func `empty value throws`() {
+            withVariable("") {
+                #expect(throws: Lint.Rule.Bundle.Baked.Channel.Error.invalid(value: "")) {
+                    try Lint.Rule.Bundle.Baked.Channel.read()
+                }
             }
         }
-    }
+    #endif
 
     @Test
     func `expression names the bundle accessor`() {
