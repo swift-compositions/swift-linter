@@ -9,7 +9,10 @@ extension Lint.Run {
 }
 
 extension Lint.Run.Command {
-
+    public enum Error: Swift.Error, Swift.Equatable, Swift.Sendable {
+        case unknownOption(Swift.String)
+        case usage(Swift.String)
+    }
 
     public static let usage: Swift.String =
         "usage: --inventory | --profile <profile.json> <path> ... | [<path> ...]; "
