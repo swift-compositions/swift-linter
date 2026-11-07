@@ -8,12 +8,12 @@ extension Lint {
 
         public let rules: Rules
 
-        public let excluded: [File_System.File.Path]
+        public let excluded: [File_System::File.Path]
 
         public init(
             enabled: Set<Lint.Rule.ID> = [],
             disabled: Set<Lint.Rule.ID> = [],
-            excluded: [File_System.File.Path] = []
+            excluded: [File_System::File.Path] = []
         ) {
             self.rules = Rules(enabled: enabled, disabled: disabled)
             self.excluded = excluded

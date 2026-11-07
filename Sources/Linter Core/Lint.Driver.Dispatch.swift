@@ -16,7 +16,7 @@ extension Lint.Driver.Dispatch {
     ) -> Swift.Int32? {
 
         let rootString: Swift.String = consumerPackageRoot.string
-        guard Manifest_Resolver.Manifest.NestedPackage.detect(at: rootString) else {
+        guard Manifest_Resolver::Manifest.NestedPackage.detect(at: rootString) else {
             return nil
         }
         if let executable: Swift.String = Prebuilt.executable() {
@@ -31,8 +31,8 @@ extension Lint.Driver.Dispatch {
                 return 1
             }
         }
-        do throws(Manifest_Resolver.Manifest.NestedPackage.Error) {
-            return try Manifest_Resolver.Manifest.NestedPackage.dispatch(
+        do throws(Manifest_Resolver::Manifest.NestedPackage.Error) {
+            return try Manifest_Resolver::Manifest.NestedPackage.dispatch(
                 at: rootString,
                 arguments: arguments,
                 executable: "Lint Runner"

@@ -161,7 +161,7 @@ extension `Lint.File.Single Tests`.Test.Eval.Unit {
     @Test
     func `The SARIF eval fixture generates the exact engine manifest`() throws {
         let root = Self.root()
-        let consumer = try File.Path("\(root)/Tests/Fixtures/report-format-eval")
+        let consumer = File.Path("\(root)/Tests/Fixtures/report-format-eval")
         let source = try Lint.File.Single.contents(of: consumer / "Lint.swift")
         let extracted = try Lint.File.Single.Extractor.dependencies(
             from: source,

@@ -62,8 +62,8 @@ extension `Lint.Driver Tests`.Test.`Configuration From Manifest` {
     func `Excluded paths are carried through to Configuration`() throws(Path::Path.Error) {
         let manifest = Lint.Manifest(
             excluded: [
-                try File.Path("Tests/Fixtures"),
-                try File.Path(".build"),
+                File.Path("Tests/Fixtures"),
+                File.Path(".build"),
             ]
         )
         let configuration = Lint.Driver.configuration(from: manifest, parent: nil)

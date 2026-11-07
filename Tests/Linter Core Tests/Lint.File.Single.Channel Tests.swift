@@ -111,7 +111,7 @@ extension `Lint.File.Single.Channel Tests`.Test {
 
     @Test
     func `The nonce makes the temp-file name unique per run`() throws(Path::Path.Error) {
-        let root = try File.Path("/tmp/swift-linter-nonce-test")
+        let root = File.Path("/tmp/swift-linter-nonce-test")
         let fixed = try Lint.File.Single.Channel.selection.path(
             consumerPackageRoot: root,
             nonce: ""

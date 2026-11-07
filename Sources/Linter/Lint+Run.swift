@@ -145,10 +145,10 @@ extension Lint {
     ) {
         let pathStrings = paths.isEmpty ? ["."] : paths
 
-        let consumerPaths: [File_System.File.Path]
+        let consumerPaths: [File_System::File.Path]
         do throws(Path::Path.Error) {
             consumerPaths = try pathStrings.map { (raw: Swift.String) throws(Path::Path.Error) in
-                try File_System.File.Path(raw)
+                try File_System::File.Path(raw)
             }
         } catch {
             failLoud("invalid path argument: \(error)")

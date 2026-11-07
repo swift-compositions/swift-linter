@@ -46,8 +46,8 @@ extension Lint.Driver {
                 description: "SWIFT_LINTER_PATH is not set to a valid swift-linter checkout; \(manifestFilename) in \(manifestDirectory) cannot be resolved"
             )
         }
-        do throws(Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>.Error) {
-            return try Manifest_Resolver.Manifest.Resolver<Lint.Manifest, Lint.Configuration>
+        do throws(Manifest_Resolver::Manifest.Resolver<Lint.Manifest, Lint.Configuration>.Error) {
+            return try Manifest_Resolver::Manifest.Resolver<Lint.Manifest, Lint.Configuration>
                 .resolve(
                     consumerPackageRoot: manifestDirectory,
                     filename: manifestFilename,

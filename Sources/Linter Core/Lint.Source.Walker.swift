@@ -82,7 +82,6 @@ extension Lint.Source.Walker {
         } catch {
             return []
         }
-        // A repository-relative name, `/`-separated on every platform, as git and the README rule name files.
         return Swift.Set(
             files.compactMap { file in
                 file.path.relative(to: root).map { $0.components.map(\.string).joined(separator: "/") }
