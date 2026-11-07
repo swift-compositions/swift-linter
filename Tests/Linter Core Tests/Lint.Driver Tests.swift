@@ -12,8 +12,11 @@ extension `Lint.Driver Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
         @Suite struct Integration {}
-        @Suite struct `Configuration From Manifest` {}
     }
+}
+
+extension `Lint.Driver Tests`.Test {
+    @Suite struct `Configuration From Manifest` {}
 }
 
 extension `Lint.Driver Tests`.Test.`Configuration From Manifest` {

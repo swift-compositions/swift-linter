@@ -15,9 +15,13 @@ extension `Lint.Suppression Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
         @Suite struct Integration {}
-        @Suite struct Scanner {}
-        @Suite struct `Engine Integration` {}
     }
+}
+
+extension `Lint.Suppression Tests`.Test {
+    @Suite struct Scanner {}
+
+    @Suite struct `Engine Integration` {}
 }
 
 extension `Lint.Suppression Tests`.Test.Scanner {

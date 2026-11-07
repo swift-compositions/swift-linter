@@ -3,14 +3,18 @@ import Linter
 import Linter_Reporter_Text
 import Testing
 
-@Suite
-struct `Run summary line` {
-    @Suite struct Unit {}
-    @Suite struct `Edge Case` {}
-    @Suite struct Integration {}
+enum `Lint.Reporter.Text.Summary Tests` {}
+
+extension `Lint.Reporter.Text.Summary Tests` {
+    @Suite
+    struct `Run summary line` {
+        @Suite struct Unit {}
+        @Suite struct `Edge Case` {}
+        @Suite struct Integration {}
+    }
 }
 
-extension `Run summary line`.Unit {
+extension `Lint.Reporter.Text.Summary Tests`.`Run summary line`.Unit {
     @Test
     func `Clean bare run prints package, active rules, files, zero violations, zero findings`() {
         let line = Lint.Reporter.Text.Summary.line(

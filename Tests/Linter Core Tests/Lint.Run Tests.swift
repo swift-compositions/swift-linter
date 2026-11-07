@@ -12,8 +12,11 @@ extension `Lint.Run Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
         @Suite struct Integration {}
-        @Suite struct `Brand Pre-Pass` {}
     }
+}
+
+extension `Lint.Run Tests`.Test {
+    @Suite struct `Brand Pre-Pass` {}
 }
 
 extension Lint.Rule {

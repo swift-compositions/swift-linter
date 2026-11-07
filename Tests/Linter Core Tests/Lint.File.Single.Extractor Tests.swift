@@ -12,8 +12,11 @@ extension `Lint.File.Single.Extractor Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
         @Suite struct Integration {}
-        @Suite struct Name {}
     }
+}
+
+extension `Lint.File.Single.Extractor Tests`.Test {
+    @Suite struct Name {}
 }
 
 enum `Lint.File.Single Tests` {}
@@ -24,8 +27,11 @@ extension `Lint.File.Single Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
         @Suite struct Integration {}
-        @Suite struct Canonicalize {}
     }
+}
+
+extension `Lint.File.Single Tests`.Test {
+    @Suite struct Canonicalize {}
 }
 
 extension `Lint.File.Single Tests`.Test.Canonicalize {

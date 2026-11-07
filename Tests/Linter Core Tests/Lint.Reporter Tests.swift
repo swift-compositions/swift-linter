@@ -12,9 +12,13 @@ extension `Lint.Reporter Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
         @Suite struct Integration {}
-        @Suite struct Text {}
-        @Suite struct SARIF {}
     }
+}
+
+extension `Lint.Reporter Tests`.Test {
+    @Suite struct Text {}
+
+    @Suite struct SARIF {}
 }
 
 extension `Lint.Reporter Tests`.Test {
