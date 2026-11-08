@@ -1,7 +1,7 @@
 internal import Environment
 internal import File_System
-internal import Process
 internal import JSON
+internal import Process
 
 extension Lint.File.Single {
 

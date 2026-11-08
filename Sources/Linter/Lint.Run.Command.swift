@@ -10,7 +10,6 @@ extension Lint.Run {
 
 extension Lint.Run.Command {
 
-
     public static let usage: Swift.String =
         "usage: --inventory | --profile <profile.json> <path> ... | [<path> ...]; "
         + "only the leading token selects the mode, and every later token is a path, "
