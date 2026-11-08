@@ -10,10 +10,6 @@ extension Lint.Driver.Dispatch.Prebuilt {
 
     public static let variable: Swift.String = "SWIFT_LINTER_TEST_DISPATCH_EXECUTABLE"
 
-    public enum Error: Swift.Error, Swift.Sendable {
-
-        case spawnFailed(executable: Swift.String, description: Swift.String)
-    }
 
     internal static func executable() -> Swift.String? {
         Environment.read(Self.variable)
