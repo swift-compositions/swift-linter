@@ -1,7 +1,7 @@
 public import SPM_Standard
 public import URI_Standard
-@_exported public import URI_Standard_Library_Integration
-@_exported public import Version
+public import URI_Standard_Library_Integration
+public import Version
 
 extension Package.Dependency {
 
