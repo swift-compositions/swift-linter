@@ -46,15 +46,18 @@ extension Lint.Driver {
                 description: "SWIFT_LINTER_PATH is not set to a valid swift-linter checkout; \(manifestFilename) in \(manifestDirectory) cannot be resolved"
             )
         }
+        var consumerEnabled: Set<Lint.Rule.ID> = []
+        let resolved: Lint.Configuration
         do throws(Manifest_Resolver::Manifest.Resolver<Lint.Manifest, Lint.Configuration>.Error) {
-            return try Manifest_Resolver::Manifest.Resolver<Lint.Manifest, Lint.Configuration>
+            resolved = try Manifest_Resolver::Manifest.Resolver<Lint.Manifest, Lint.Configuration>
                 .resolve(
                     consumerPackageRoot: manifestDirectory,
                     filename: manifestFilename,
                     dependencies: dependencies,
                     defaultConfiguration: defaultConfiguration,
                     buildConfiguration: { manifest, parent in
-                        configuration(from: manifest, parent: parent)
+                        consumerEnabled = manifest.rules.enabled
+                        return configuration(from: manifest, parent: parent)
                     }
                 )
         } catch {
@@ -67,6 +70,8 @@ extension Lint.Driver {
                 Lint.Driver.Error.resolutionFailed(description: "\(error)")
             }
         }
+        try check(enabled: consumerEnabled, in: "\(manifestDirectory)/\(manifestFilename)")
+        return resolved
     }
 }
 
@@ -74,6 +79,18 @@ extension Lint.Driver {
 
     fileprivate static func defaultConfiguration() -> Lint.Configuration {
         Lint.Configuration {}
+    }
+
+    internal static func check(
+        enabled: Set<Lint.Rule.ID>,
+        in manifest: Swift.String
+    ) throws(Lint.Driver.Error) {
+        guard !enabled.isEmpty else { return }
+        let identifiers = enabled.map(\.underlying).sorted().joined(separator: ", ")
+        throw .resolutionFailed(
+            description: "\(manifest) enables rules (\(identifiers)), which only a Lint.swift with a "
+                + "'\(Lint.File.Single.Detection.header)' header can activate; add the header or remove the enabled rules"
+        )
     }
 
     internal static func configuration(

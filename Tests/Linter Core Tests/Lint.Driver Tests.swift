@@ -81,3 +81,25 @@ extension `Lint.Driver Tests`.Test.`Configuration From Manifest` {
         #expect(configuration.rules.effective.entries.isEmpty)
     }
 }
+
+extension `Lint.Driver Tests`.Test {
+    @Suite struct `Enabled Rules Without Header` {}
+}
+
+extension `Lint.Driver Tests`.Test.`Enabled Rules Without Header` {
+    @Test
+    func `A manifest without enabled rules passes the check`() throws(Lint.Driver.Error) {
+        try Lint.Driver.check(enabled: [], in: "Lint.swift")
+    }
+
+    @Test
+    func `Enabled rules in a manifest without the tools-version header are refused`() {
+        #expect {
+            try Lint.Driver.check(enabled: ["unchecked_call_site"], in: "Lint.swift")
+        } throws: { error in
+            guard case Lint.Driver.Error.resolutionFailed(let description) = error else { return false }
+            return description.contains("unchecked_call_site")
+                && description.contains(Lint.File.Single.Detection.header)
+        }
+    }
+}
