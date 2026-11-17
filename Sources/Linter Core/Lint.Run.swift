@@ -146,7 +146,8 @@ extension Lint.Run {
                         path: path,
                         license: control.license,
                         files: control.files,
-                        documents: control.documents
+                        documents: control.documents,
+                        packages: control.packages
                     )
                 )
                 let severity = entry.severity ?? entry.rule.severity.default
@@ -246,7 +247,8 @@ extension Lint.Run {
         path: Swift.String,
         license: Lint.Source.Index.License,
         files: [Swift.String: Swift.String],
-        documents: Swift.Set<Swift.String>
+        documents: Swift.Set<Swift.String>,
+        packages: Swift.Set<Swift.String>
     ) -> Lint.Source.Index {
         var index = Lint.Source.Index.collect(from: tree, path: path)
         for (path, source) in files {
@@ -254,6 +256,7 @@ extension Lint.Run {
         }
         index.license = license
         index.documents = documents
+        index.packages = packages
         return index
     }
 
@@ -284,6 +287,7 @@ extension Lint.Run {
         }
         for root in paths {
             index.documents.formUnion(Lint.Source.Walker.documents(under: root))
+            index.packages.formUnion(Lint.Source.Walker.packages(under: root))
         }
         for root in paths {
             for sourcePath in Lint.Source.Walker.paths(under: root) {

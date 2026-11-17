@@ -40,18 +40,7 @@ extension Lint.Source.Walker {
             return []
         }
 
-        var nestedPackageRoots: [File.Path] = []
-        for file in files {
-            guard file.path.components.last?.string == "Package.swift",
-                let relative = file.path.relative(to: root),
-                !Self.isDocumentation(relative),
-                let parent = file.path.parent,
-                parent != root,
-                let source = try? Lint.File.Single.contents(of: file.path),
-                Self.isPackageManifest(source)
-            else { continue }
-            nestedPackageRoots.append(parent)
-        }
+        let nestedPackageRoots = Self.nestedPackageRoots(among: files, under: root)
 
         var results: [Lint.Source.Path] = []
         results.reserveCapacity(files.count)
@@ -70,6 +59,35 @@ extension Lint.Source.Walker {
     }
 
     public static let documentation: [Glob.Pattern] = ["**/*.md"]
+
+    public static func packages(under root: File.Path) -> Swift.Set<Swift.String> {
+        guard root.components.last?.extension?.string != "swift" else { return [] }
+        let files: [File]
+        do throws(Glob.Error) {
+            files = try File.Directory(root).glob.files(include: ["**/Package.swift"], excluding: excluded)
+        } catch {
+            return []
+        }
+        return Swift.Set(
+            Self.nestedPackageRoots(among: files, under: root).compactMap { parent in
+                parent.relative(to: root).map { $0.components.map(\.string).joined(separator: "/") }
+            }
+        )
+    }
+
+    fileprivate static func nestedPackageRoots(among files: [File], under root: File.Path) -> [File.Path] {
+        files.compactMap { file in
+            guard file.path.components.last?.string == "Package.swift",
+                let relative = file.path.relative(to: root),
+                !Self.isDocumentation(relative),
+                let parent = file.path.parent,
+                parent != root,
+                let source = try? Lint.File.Single.contents(of: file.path),
+                Self.isPackageManifest(source)
+            else { return nil }
+            return parent
+        }
+    }
 
     public static func documents(under root: File.Path) -> Swift.Set<Swift.String> {
         guard root.components.last?.extension?.string != "swift" else { return [] }
