@@ -141,14 +141,7 @@ extension Lint.Run {
                     tree: tree,
                     converter: converter,
                     types: Lint.Brand.types(in: tree),
-                    index: Self.controlIndex(
-                        tree: tree,
-                        path: path,
-                        license: control.license,
-                        files: control.files,
-                        documents: control.documents,
-                        packages: control.packages
-                    )
+                    index: control.index(tree: tree) { Parser.parse(source: $0) }
                 )
                 let severity = entry.severity ?? entry.rule.severity.default
                 let observation = entry.rule.observe(parsed, severity)
@@ -240,24 +233,6 @@ extension Lint.Run {
             types: types,
             index: index
         )
-    }
-
-    fileprivate static func controlIndex(
-        tree: SourceFileSyntax,
-        path: Swift.String,
-        license: Lint.Source.Index.License,
-        files: [Swift.String: Swift.String],
-        documents: Swift.Set<Swift.String>,
-        packages: Swift.Set<Swift.String>
-    ) -> Lint.Source.Index {
-        var index = Lint.Source.Index.collect(from: tree, path: path)
-        for (path, source) in files {
-            index.merge(.collect(from: Parser.parse(source: source), path: path))
-        }
-        index.license = license
-        index.documents = documents
-        index.packages = packages
-        return index
     }
 
     internal static func license(at root: File.Path) -> Lint.Source.Index.License {
