@@ -97,7 +97,7 @@ extension Lint.Reporter.Text {
             _ bytes: [Byte],
             to write: Terminal.Stream.Write
         ) {
-            do throws(ISO_9945.Kernel.IO.Write.Error) { _ = try write(bytes) } catch {}
+            do throws(ISO.`9945`.Kernel.IO.Write.Error) { _ = try write(bytes) } catch {}
         }
     #else
         fileprivate static func write(

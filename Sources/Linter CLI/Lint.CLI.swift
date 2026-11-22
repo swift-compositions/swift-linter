@@ -88,7 +88,7 @@ extension Lint.CLI {
 
     fileprivate static func writeError(_ text: Swift.String) {
         #if !os(Windows)
-            do throws(ISO_9945.Kernel.IO.Write.Error) {
+            do throws(ISO.`9945`.Kernel.IO.Write.Error) {
                 _ = try Terminal.Stream.stderr.write(bytes(of: text))
             } catch {}
         #else
@@ -101,7 +101,7 @@ extension Lint.CLI {
     fileprivate static func currentWorkingDirectory() -> Swift.String? {
         let result: Swift.String?
         #if !os(Windows)
-            do throws(ISO_9945.Kernel.Directory.Working.Error) {
+            do throws(ISO.`9945`.Kernel.Directory.Working.Error) {
                 result = try Kernel.Directory.Working.withCurrentBytes {
                     (span: Swift.Span<UInt8>) -> Swift.String in
                     var bytes: [UInt8] = []
